@@ -1,6 +1,6 @@
 {
   "name": "telegram-sync-amvera-r",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Sync messages from Telegram bot into your vault, with audio transcription and AI post-processing.",
   "main": "main.js",
   "type": "module",
