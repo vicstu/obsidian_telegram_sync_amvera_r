@@ -1,0 +1,135 @@
+/* Activity log modal */
+.telegram-sync-activity-modal {
+  width: 720px;
+  max-width: 90vw;
+  user-select: text;
+}
+
+.telegram-sync-activity-modal .modal-content {
+  user-select: text;
+}
+
+.telegram-sync-activity-panel {
+  max-height: 160px;
+  overflow: auto;
+  margin-bottom: 1em;
+  font-family: var(--font-monospace);
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 0.5em 0.75em;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-secondary);
+  user-select: text;
+}
+
+.telegram-sync-activity-panel.is-entries {
+  max-height: 420px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.telegram-sync-activity-process {
+  margin-bottom: 0.35em;
+}
+
+.telegram-sync-activity-status {
+  font-weight: 600;
+  margin-right: 0.5em;
+}
+
+.telegram-sync-activity-status.is-running {
+  color: var(--color-accent);
+}
+
+.telegram-sync-activity-status.is-done {
+  color: var(--text-success);
+}
+
+.telegram-sync-activity-status.is-failed {
+  color: var(--text-error);
+}
+
+.telegram-sync-activity-time {
+  opacity: 0.7;
+  margin-right: 0.5em;
+}
+
+.telegram-sync-activity-detail {
+  opacity: 0.75;
+  padding-left: 1em;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.telegram-sync-activity-entry {
+  margin-bottom: 0.4em;
+  border-bottom: 1px solid var(--background-modifier-border);
+  padding-bottom: 0.35em;
+}
+
+.telegram-sync-activity-level {
+  font-weight: 600;
+  margin-right: 0.5em;
+}
+
+.telegram-sync-activity-level.is-success {
+  color: var(--text-success);
+}
+
+.telegram-sync-activity-level.is-warn {
+  color: var(--text-warning);
+}
+
+.telegram-sync-activity-level.is-error {
+  color: var(--text-error);
+}
+
+.telegram-sync-activity-level.is-info {
+  color: var(--text-muted);
+}
+
+.telegram-sync-activity-category {
+  opacity: 0.8;
+  margin-right: 0.5em;
+}
+
+.telegram-sync-activity-entry-detail {
+  opacity: 0.75;
+  padding-left: 0.25em;
+  margin-top: 0.15em;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Settings */
+.telegram-sync-heading-link {
+  margin-left: 0.5em;
+  font-size: var(--font-ui-small);
+  font-weight: var(--font-normal);
+}
+
+.telegram-sync-fullwidth-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.telegram-sync-fullwidth-prompt .setting-item-info {
+  width: 100%;
+  margin-right: 0;
+}
+
+.telegram-sync-fullwidth-prompt .setting-item-control {
+  display: none;
+}
+
+.telegram-sync-fullwidth-prompt textarea {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-top: 0.6em;
+  box-sizing: border-box;
+  resize: vertical;
+}
