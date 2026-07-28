@@ -1,4 +1,4 @@
-# Telegram Sync Amvera
+# Obsidian Telegram Sync Amvera R
 
 Плагин [Obsidian](https://obsidian.md/) для загрузки сообщений из Telegram-бота в Obsidian.
 
