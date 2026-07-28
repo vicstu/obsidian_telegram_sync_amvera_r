@@ -1,7 +1,7 @@
 {
-  "name": "obsidian-telegram-sync-amvera-r",
+  "name": "telegram-sync-amvera-r",
   "version": "0.1.0",
-  "description": "Sync messages from Telegram bot into Obsidian, with audio transcription and AI post-processing.",
+  "description": "Sync messages from Telegram bot into your vault, with audio transcription and AI post-processing.",
   "main": "main.js",
   "type": "module",
   "scripts": {

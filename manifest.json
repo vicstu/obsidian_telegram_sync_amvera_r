@@ -3,7 +3,7 @@
   "name": "Telegram Sync Amvera R",
   "version": "0.1.0",
   "minAppVersion": "1.5.0",
-  "description": "Sync messages from Telegram bot into Obsidian, with audio transcription and  AI post-processing.",
+  "description": "Sync messages from Telegram bot into your vault, with audio transcription and AI post-processing.",
   "author": "Victor Stupin",
   "authorUrl": "https://github.com/vicstu",
   "isDesktopOnly": true
