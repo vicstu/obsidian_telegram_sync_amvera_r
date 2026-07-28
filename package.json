@@ -1,0 +1,19 @@
+{
+  "name": "obsidian-telegram-sync-amvera",
+  "version": "0.2.0",
+  "description": "Sync messages from your personal Telegram bot into Obsidian, with optional ProxyAPI audio transcription and post-processing.",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
+  },
+  "keywords": [],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.15.17",
+    "esbuild": "0.25.5",
+    "obsidian": "latest",
+    "typescript": "^5.8.3"
+  }
+}

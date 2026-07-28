@@ -1,0 +1,10 @@
+{
+  "id": "telegram-sync-amvera-r",
+  "name": "Telegram Sync Amvera R",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Sync messages from your personal Telegram bot into Obsidian, with optional ProxyAPI audio transcription and post-processing.",
+  "author": "Victor Stupin",
+  "authorUrl": "https://github.com/vicstu",
+  "isDesktopOnly": true
+}
