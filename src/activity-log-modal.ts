@@ -19,12 +19,6 @@ export class ActivityLogModal extends Modal {
   onOpen(): void {
     this.setTitle("Telegram Sync — Activity log");
     this.modalEl.addClass("telegram-sync-activity-modal");
-    this.modalEl.style.width = "720px";
-    this.modalEl.style.maxWidth = "90vw";
-    this.modalEl.style.userSelect = "text";
-    this.modalEl.style.webkitUserSelect = "text";
-    this.contentEl.style.userSelect = "text";
-    this.contentEl.style.webkitUserSelect = "text";
 
     const { contentEl } = this;
     contentEl.empty();
@@ -41,40 +35,15 @@ export class ActivityLogModal extends Modal {
         button.setButtonText("Close").onClick(() => this.close());
       });
 
-    contentEl.createEl("h4", { text: "Processes" });
+    new Setting(contentEl).setName("Processes").setHeading();
     this.processesEl = contentEl.createDiv({
-      cls: "telegram-sync-activity-processes",
+      cls: "telegram-sync-activity-panel",
     });
-    this.processesEl.style.maxHeight = "160px";
-    this.processesEl.style.overflow = "auto";
-    this.processesEl.style.marginBottom = "1em";
-    this.processesEl.style.fontFamily = "var(--font-monospace)";
-    this.processesEl.style.fontSize = "12px";
-    this.processesEl.style.lineHeight = "1.45";
-    this.processesEl.style.padding = "0.5em 0.75em";
-    this.processesEl.style.border = "1px solid var(--background-modifier-border)";
-    this.processesEl.style.borderRadius = "6px";
-    this.processesEl.style.background = "var(--background-secondary)";
-    this.processesEl.style.userSelect = "text";
-    this.processesEl.style.webkitUserSelect = "text";
 
-    contentEl.createEl("h4", { text: "Event log" });
+    new Setting(contentEl).setName("Event log").setHeading();
     this.entriesEl = contentEl.createDiv({
-      cls: "telegram-sync-activity-entries",
+      cls: "telegram-sync-activity-panel is-entries",
     });
-    this.entriesEl.style.maxHeight = "420px";
-    this.entriesEl.style.overflow = "auto";
-    this.entriesEl.style.fontFamily = "var(--font-monospace)";
-    this.entriesEl.style.fontSize = "12px";
-    this.entriesEl.style.lineHeight = "1.45";
-    this.entriesEl.style.padding = "0.5em 0.75em";
-    this.entriesEl.style.border = "1px solid var(--background-modifier-border)";
-    this.entriesEl.style.borderRadius = "6px";
-    this.entriesEl.style.background = "var(--background-secondary)";
-    this.entriesEl.style.whiteSpace = "pre-wrap";
-    this.entriesEl.style.wordBreak = "break-word";
-    this.entriesEl.style.userSelect = "text";
-    this.entriesEl.style.webkitUserSelect = "text";
 
     this.render();
     this.unsubscribe = activityLog.subscribe(() => this.render());
@@ -101,50 +70,34 @@ export class ActivityLogModal extends Modal {
     }
 
     for (const process of processes) {
-      this.processesEl.appendChild(this.buildProcessRow(process));
+      this.appendProcessRow(this.processesEl, process);
     }
   }
 
-  private buildProcessRow(process: ActivityProcess): HTMLElement {
-    const row = document.createElement("div");
-    row.style.marginBottom = "0.35em";
+  private appendProcessRow(
+    parent: HTMLElement,
+    process: ActivityProcess,
+  ): void {
+    const row = parent.createDiv({ cls: "telegram-sync-activity-process" });
 
-    const statusColor =
-      process.status === "running"
-        ? "var(--color-accent)"
-        : process.status === "done"
-          ? "var(--text-success)"
-          : "var(--text-error)";
+    row.createSpan({
+      cls: `telegram-sync-activity-status is-${process.status}`,
+      text: `[${process.status}]`,
+    });
 
-    const status = document.createElement("span");
-    status.textContent = `[${process.status}]`;
-    status.style.color = statusColor;
-    status.style.fontWeight = "600";
-    status.style.marginRight = "0.5em";
+    row.createSpan({
+      cls: "telegram-sync-activity-time",
+      text: formatActivityTime(process.startedAt),
+    });
 
-    const time = document.createElement("span");
-    time.textContent = formatActivityTime(process.startedAt);
-    time.style.opacity = "0.7";
-    time.style.marginRight = "0.5em";
-
-    const name = document.createElement("span");
-    name.textContent = process.name;
-
-    row.appendChild(status);
-    row.appendChild(time);
-    row.appendChild(name);
+    row.createSpan({ text: process.name });
 
     if (process.detail) {
-      const detail = document.createElement("div");
-      detail.textContent = process.detail;
-      detail.style.opacity = "0.75";
-      detail.style.paddingLeft = "1em";
-      detail.style.whiteSpace = "pre-wrap";
-      detail.style.wordBreak = "break-word";
-      row.appendChild(detail);
+      row.createDiv({
+        cls: "telegram-sync-activity-detail",
+        text: process.detail,
+      });
     }
-
-    return row;
   }
 
   private renderEntries(): void {
@@ -157,67 +110,36 @@ export class ActivityLogModal extends Modal {
     }
 
     for (const entry of entries) {
-      this.entriesEl.appendChild(this.buildEntryRow(entry));
+      this.appendEntryRow(this.entriesEl, entry);
     }
   }
 
-  private buildEntryRow(entry: ActivityEntry): HTMLElement {
-    const row = document.createElement("div");
-    row.style.marginBottom = "0.4em";
-    row.style.borderBottom = "1px solid var(--background-modifier-border)";
-    row.style.paddingBottom = "0.35em";
+  private appendEntryRow(parent: HTMLElement, entry: ActivityEntry): void {
+    const row = parent.createDiv({ cls: "telegram-sync-activity-entry" });
+    const header = row.createDiv();
 
-    const header = document.createElement("div");
+    header.createSpan({
+      cls: "telegram-sync-activity-time",
+      text: formatActivityTime(entry.at),
+    });
 
-    const time = document.createElement("span");
-    time.textContent = formatActivityTime(entry.at);
-    time.style.opacity = "0.7";
-    time.style.marginRight = "0.5em";
+    header.createSpan({
+      cls: `telegram-sync-activity-level is-${entry.level}`,
+      text: entry.level.toUpperCase(),
+    });
 
-    const level = document.createElement("span");
-    level.textContent = entry.level.toUpperCase();
-    level.style.fontWeight = "600";
-    level.style.marginRight = "0.5em";
-    level.style.color = this.levelColor(entry.level);
+    header.createSpan({
+      cls: "telegram-sync-activity-category",
+      text: `[${entry.category}]`,
+    });
 
-    const category = document.createElement("span");
-    category.textContent = `[${entry.category}]`;
-    category.style.opacity = "0.8";
-    category.style.marginRight = "0.5em";
-
-    const message = document.createElement("span");
-    message.textContent = entry.message;
-
-    header.appendChild(time);
-    header.appendChild(level);
-    header.appendChild(category);
-    header.appendChild(message);
-    row.appendChild(header);
+    header.createSpan({ text: entry.message });
 
     if (entry.detail) {
-      const detail = document.createElement("div");
-      detail.textContent = entry.detail;
-      detail.style.opacity = "0.75";
-      detail.style.paddingLeft = "0.25em";
-      detail.style.marginTop = "0.15em";
-      detail.style.whiteSpace = "pre-wrap";
-      detail.style.wordBreak = "break-word";
-      row.appendChild(detail);
-    }
-
-    return row;
-  }
-
-  private levelColor(level: ActivityEntry["level"]): string {
-    switch (level) {
-      case "success":
-        return "var(--text-success)";
-      case "warn":
-        return "var(--text-warning)";
-      case "error":
-        return "var(--text-error)";
-      default:
-        return "var(--text-muted)";
+      row.createDiv({
+        cls: "telegram-sync-activity-entry-detail",
+        text: entry.detail,
+      });
     }
   }
 }

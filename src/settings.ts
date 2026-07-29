@@ -20,7 +20,6 @@ import {
   POST_PROCESS_MODELS,
   resolvePostProcessModel,
   resolveSettingsUiLanguage,
-  TelegramSyncSettings,
   TRANSCRIPTION_MODEL,
 } from "./types";
 
@@ -42,25 +41,26 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
     siteHref?: string,
     siteLabel?: string,
   ): void {
-    const headerRow = containerEl.createDiv();
-    headerRow.style.display = "flex";
-    headerRow.style.alignItems = "baseline";
-    headerRow.style.gap = "0.5em";
-    headerRow.style.marginTop = "1.5em";
-    headerRow.style.marginBottom = "0.5em";
+    const heading = new Setting(containerEl).setName(title).setHeading();
 
-    headerRow.createEl("h3", { text: title });
     if (siteHref && siteLabel) {
-      const siteLink = headerRow.createEl("a", {
+      heading.nameEl.createEl("a", {
         text: siteLabel,
         href: siteHref,
+        cls: "telegram-sync-heading-link",
+        attr: {
+          target: "_blank",
+          rel: "noopener",
+        },
       });
-      siteLink.target = "_blank";
-      siteLink.rel = "noopener";
     }
   }
 
   display(): void {
+    this.renderSettings();
+  }
+
+  private renderSettings(): void {
     const { containerEl } = this;
     containerEl.empty();
     const t = this.t();
@@ -80,7 +80,7 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
           this.plugin.settings.settingsUiLanguage =
             resolveSettingsUiLanguage(value);
           await this.plugin.saveSettings();
-          this.display();
+          this.renderSettings();
         });
       });
 
@@ -196,26 +196,13 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
   ): void {
     const setting = new Setting(containerEl)
       .setName(options.name)
-      .setDesc(options.desc);
-
-    setting.settingEl.style.display = "flex";
-    setting.settingEl.style.flexDirection = "column";
-    setting.settingEl.style.alignItems = "stretch";
-    setting.infoEl.style.width = "100%";
-    setting.infoEl.style.marginRight = "0";
-    setting.controlEl.style.display = "none";
+      .setDesc(options.desc)
+      .setClass("telegram-sync-fullwidth-prompt");
 
     const textarea = setting.descEl.createEl("textarea");
     textarea.value = options.value;
     textarea.placeholder = options.placeholder;
     textarea.rows = options.rows ?? 4;
-    textarea.style.display = "block";
-    textarea.style.width = "100%";
-    textarea.style.maxWidth = "100%";
-    textarea.style.minWidth = "0";
-    textarea.style.marginTop = "0.6em";
-    textarea.style.boxSizing = "border-box";
-    textarea.style.resize = "vertical";
     textarea.addEventListener("input", () => {
       void options.onChange(textarea.value);
     });
@@ -240,7 +227,7 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.transcribeAudio = value;
             await this.plugin.saveSettings();
-            this.display();
+            this.renderSettings();
           }),
       );
 
@@ -283,7 +270,7 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.postProcessTranscription = value;
             await this.plugin.saveSettings();
-            this.display();
+            this.renderSettings();
           }),
       );
 
@@ -306,13 +293,15 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
         });
 
       modelSetting.descEl.empty();
-      const pricingLink = modelSetting.descEl.createEl("a", {
+      modelSetting.descEl.createEl("a", {
         text: t.tokenPricing,
         href: "https://proxyapi.ru/pricing/list",
+        attr: {
+          target: "_blank",
+          rel: "noopener",
+          title: `${t.tokenPricing} — https://proxyapi.ru/pricing/list`,
+        },
       });
-      pricingLink.target = "_blank";
-      pricingLink.rel = "noopener";
-      pricingLink.title = `${t.tokenPricing} — https://proxyapi.ru/pricing/list`;
       modelSetting.descEl.createSpan({
         text: t.tokenPricingSuffix,
       });
