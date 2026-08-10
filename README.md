@@ -2,7 +2,7 @@
 
 An [Obsidian](https://obsidian.md/) plugin that syncs messages from your personal Telegram bot into your vault.
 
-Messages first go to your sync server on [Amvera](https://amvera.ru/), and the plugin pulls them into notes on command. Optionally, voice and audio can be transcribed via [ProxyAPI](https://proxyapi.ru/).
+Messages first go to your sync server on [Amvera](https://amvera.ru/), where they are stored until you sync them into Obsidian. After a successful sync they are **removed from the server** and **not kept in any form**. The plugin pulls them into notes when you run **Fetch new messages**. Optionally, voice and audio can be transcribed via [ProxyAPI](https://proxyapi.ru/).
 
 **Desktop only** (Obsidian 1.5.0+).
 
@@ -310,7 +310,7 @@ MIT
 
 Плагин [Obsidian](https://obsidian.md/) для синхронизации сообщений из личного Telegram-бота в vault.
 
-Сообщения сначала попадают на ваш sync-сервер на [Amvera](https://amvera.ru/), а плагин по команде забирает их в заметки. Опционально голосовые и аудио можно транскрибировать через [ProxyAPI](https://proxyapi.ru/).
+Сообщения сначала попадают на ваш sync-сервер на [Amvera](https://amvera.ru/), где хранятся, пока вы не синхронизируете их в Obsidian. После успешной синхронизации они **удаляются с сервера** и **нигде больше не хранятся**. Плагин забирает их в заметки по команде **Fetch new messages**. Опционально голосовые и аудио можно транскрибировать через [ProxyAPI](https://proxyapi.ru/).
 
 **Только desktop** (Obsidian 1.5.0+).
 
