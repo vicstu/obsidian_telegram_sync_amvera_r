@@ -6,16 +6,31 @@ Messages first go to your sync server on [Amvera](https://amvera.ru/), and the p
 
 **Desktop only** (Obsidian 1.5.0+).
 
+**Links**
+
+- Default Telegram bot: [@obsidian_sync_amvera_r_bot](https://t.me/obsidian_sync_amvera_r_bot)
+- Sync server source code: [github.com/vicstu/server_obsidian_telegram_sync_amvera_r](https://github.com/vicstu/server_obsidian_telegram_sync_amvera_r)
+
 ---
 
 ## What you need beforehand
 
 1. Install the plugin in Obsidian.
-2. Create a Telegram bot.
-3. Deploy the sync server on Amvera.
-4. Configure the plugin and verify the connection.
+2. Either use the **default shared bot and server**, or create **your own** Telegram bot and deploy the sync server on Amvera.
+3. Configure the plugin and verify the connection.
 
 Step-by-step below.
+
+### Quick start (default server and bot)
+
+If you do not want to deploy your own server yet:
+
+1. Install and enable the plugin (section 1).
+2. Open [@obsidian_sync_amvera_r_bot](https://t.me/obsidian_sync_amvera_r_bot) in Telegram and press **Start** (`/start`). Copy your **User ID** from the bot’s reply.
+3. In **Settings → Telegram Sync Amvera**, leave **Use default server and Telegram bot** selected, paste **User ID**, and press **Check** under Telegram (send the bot a test message first).
+4. Run **Fetch new messages** in Obsidian.
+
+For your own bot and server, follow sections 2–4. Server code: [server_obsidian_telegram_sync_amvera_r](https://github.com/vicstu/server_obsidian_telegram_sync_amvera_r).
 
 ---
 
@@ -43,7 +58,9 @@ At this point the plugin is in Obsidian, but sync will not work without a bot an
 
 ---
 
-## 2. Create a Telegram bot
+## 2. Create a Telegram bot (custom server only)
+
+Skip this section if you use the [default bot](https://t.me/obsidian_sync_amvera_r_bot).
 
 1. In Telegram, open [@BotFather](https://t.me/BotFather).
 2. Send `/newbot`.
@@ -67,12 +84,13 @@ This ID is used as `MY_TELEGRAM_USER_ID`: the bot accepts messages **only from y
 
 ---
 
-## 3. Deploy the sync server on Amvera
+## 3. Deploy the sync server on Amvera (custom server only)
+
+Skip this section if you use the default shared server in the plugin.
 
 The plugin needs a backend: it receives messages from the bot, queues them, and serves them to Obsidian via API.
 
-Server source: **[server files on GitHub](https://github.com/vicstu/YOUR-SERVER-REPO)**  
-*(replace the link with the actual repository that contains the Amvera project code).*
+Server source: **[server_obsidian_telegram_sync_amvera_r on GitHub](https://github.com/vicstu/server_obsidian_telegram_sync_amvera_r)**
 
 ### 3.1. Registration and project
 
@@ -136,14 +154,28 @@ Open **Settings → Telegram Sync Amvera**.
 
 Settings language follows Obsidian’s interface language: Russian UI → Russian settings, otherwise English.
 
-### Amvera server
+### Default vs custom server
+
+| Mode | When to use |
+|------|-------------|
+| **Use default server and Telegram bot** | Fastest start. Bot: [@obsidian_sync_amvera_r_bot](https://t.me/obsidian_sync_amvera_r_bot). No bot token or server URL needed in the plugin — only **User ID**. |
+| **Configure server and Telegram bot** | Your own Amvera app and bot. Set **Server URL**, **Bot API token**, and **User ID**. Server code: [GitHub](https://github.com/vicstu/server_obsidian_telegram_sync_amvera_r). |
+
+### Sync server (custom mode)
 
 | Setting | What to enter |
 |---------|---------------|
 | **Server URL** | Public URL of your Amvera app **without** a trailing `/` |
 | **Connection check** | Click **Check** — the server should be reachable and Telegram sync ready |
 
-If Check says sync is not ready: verify `TELEGRAM_OBSIDIAN_BOT_TOKEN` and `MY_TELEGRAM_USER_ID`, then restart the Amvera app.
+If Check says sync is not ready: verify `TELEGRAM_OBSIDIAN_BOT_TOKEN` and `MY_TELEGRAM_USER_ID` on Amvera, then restart the app.
+
+### Telegram
+
+| Setting | What to enter |
+|---------|---------------|
+| **User ID** | From `/start` reply (default bot) or [@userinfobot](https://t.me/userinfobot) |
+| **Connection check** | Send a message to the bot, then press **Check** — auth and pending queue are verified |
 
 ### Obsidian links
 
@@ -282,16 +314,31 @@ MIT
 
 **Только desktop** (Obsidian 1.5.0+).
 
+**Ссылки**
+
+- Бот по умолчанию: [@obsidian_sync_amvera_r_bot](https://t.me/obsidian_sync_amvera_r_bot)
+- Код sync-сервера: [github.com/vicstu/server_obsidian_telegram_sync_amvera_r](https://github.com/vicstu/server_obsidian_telegram_sync_amvera_r)
+
 ---
 
 ## Что нужно заранее
 
 1. Установить плагин в Obsidian.
-2. Создать Telegram-бота.
-3. Развернуть sync-сервер на Amvera.
-4. Настроить плагин и проверить связь.
+2. Либо использовать **общий бот и сервер по умолчанию**, либо создать **свой** Telegram-бот и развернуть sync-сервер на Amvera.
+3. Настроить плагин и проверить связь.
 
 Ниже — по шагам.
+
+### Быстрый старт (сервер и бот по умолчанию)
+
+Если пока не хотите поднимать свой сервер:
+
+1. Установите и включите плагин (раздел 1).
+2. Откройте [@obsidian_sync_amvera_r_bot](https://t.me/obsidian_sync_amvera_r_bot) в Telegram и нажмите **Start** (`/start`). Скопируйте **User ID** из ответа бота.
+3. В **Настройки → Telegram Sync Amvera** оставьте режим **По умолчанию**, вставьте **User ID** и нажмите **Проверить** в блоке Telegram (сначала отправьте боту тестовое сообщение).
+4. В Obsidian выполните **Fetch new messages**.
+
+Для своего бота и сервера — разделы 2–4. Код сервера: [server_obsidian_telegram_sync_amvera_r](https://github.com/vicstu/server_obsidian_telegram_sync_amvera_r).
 
 ---
 
@@ -319,7 +366,9 @@ MIT
 
 ---
 
-## 2. Создайте Telegram-бота
+## 2. Создайте Telegram-бота (только для своего сервера)
+
+Пропустите этот раздел, если используете [бота по умолчанию](https://t.me/obsidian_sync_amvera_r_bot).
 
 1. В Telegram откройте [@BotFather](https://t.me/BotFather).
 2. Отправьте `/newbot`.
@@ -343,12 +392,13 @@ MIT
 
 ---
 
-## 3. Разверните sync-сервер на Amvera
+## 3. Разверните sync-сервер на Amvera (только для своего сервера)
+
+Пропустите этот раздел, если в плагине используете общий сервер по умолчанию.
 
 Плагину нужен backend: он принимает сообщения от бота, кладёт их в очередь и отдаёт Obsidian по API.
 
-Исходники сервера: **[файлы сервера на GitHub](https://github.com/vicstu/YOUR-SERVER-REPO)**  
-*(замените ссылку на актуальный репозиторий с кодом Amvera-проекта).*
+Исходники сервера: **[server_obsidian_telegram_sync_amvera_r на GitHub](https://github.com/vicstu/server_obsidian_telegram_sync_amvera_r)**
 
 ### 3.1. Регистрация и проект
 
@@ -412,14 +462,28 @@ https://ваш-проект-xxx.amvera.tech/health
 
 Язык настроек совпадает с языком интерфейса Obsidian: русский → русские настройки, иначе английские.
 
-### Amvera server
+### По умолчанию или свой сервер
+
+| Режим | Когда использовать |
+|-------|-------------------|
+| **По умолчанию** | Быстрый старт. Бот: [@obsidian_sync_amvera_r_bot](https://t.me/obsidian_sync_amvera_r_bot). В плагине нужен только **User ID** — токен и URL сервера не задаются. |
+| **Настроить** | Свой проект на Amvera и свой бот. Укажите **URL сервера**, **API-токен бота** и **User ID**. Код сервера: [GitHub](https://github.com/vicstu/server_obsidian_telegram_sync_amvera_r). |
+
+### Сервер синхронизации (режим «Настроить»)
 
 | Параметр | Что указать |
 |----------|-------------|
 | **Server URL** | Публичный URL вашего приложения на Amvera **без** `/` в конце |
 | **Connection check** | Нажмите **Check** — сервер должен быть доступен, Telegram sync — ready |
 
-Если Check пишет, что sync не готов: проверьте переменные `TELEGRAM_OBSIDIAN_BOT_TOKEN` и `MY_TELEGRAM_USER_ID` и перезапуск приложения на Amvera.
+Если Check пишет, что sync не готов: проверьте `TELEGRAM_OBSIDIAN_BOT_TOKEN` и `MY_TELEGRAM_USER_ID` на Amvera и перезапустите приложение.
+
+### Telegram
+
+| Параметр | Что указать |
+|----------|-------------|
+| **User ID** | Из ответа на `/start` (бот по умолчанию) или [@userinfobot](https://t.me/userinfobot) |
+| **Проверить** | Напишите боту сообщение, затем нажмите **Проверить** — проверяются auth и очередь |
 
 ### Obsidian links
 
