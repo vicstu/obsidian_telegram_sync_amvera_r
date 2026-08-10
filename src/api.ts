@@ -3,6 +3,8 @@ import { requestUrl, RequestUrlParam, RequestUrlResponse } from "obsidian";
 import { activityLog } from "./activity-log";
 import {
   ConnectionCheckResult,
+  getEffectiveServerUrl,
+  getServerApiAuthToken,
   MarkProcessedResponse,
   MessagesResponse,
   StatusResponse,
@@ -13,11 +15,18 @@ export class TelegramApiClient {
   constructor(private readonly settings: TelegramSyncSettings) {}
 
   private getServerUrl(): string {
-    const url = this.settings.serverUrl.trim();
-    if (!url) {
-      throw new Error("Server URL is not configured");
+    return getEffectiveServerUrl(this.settings);
+  }
+
+  private getAuthHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${getServerApiAuthToken(this.settings)}`,
+    };
+    const userId = this.settings.telegramUserId.trim();
+    if (userId) {
+      headers["X-Telegram-User-Id"] = userId;
     }
-    return url.replace(/\/+$/, "");
+    return headers;
   }
 
   private buildUrl(path: string): string {
@@ -38,6 +47,7 @@ export class TelegramApiClient {
       const response = await requestUrl({
         ...params,
         headers: {
+          ...this.getAuthHeaders(),
           ...params.headers,
         },
       });

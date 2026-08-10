@@ -29,7 +29,7 @@ export function normalizeMessageType(message: TelegramMessage): string {
   return TYPE_ALIASES[mediaType] ?? mediaType;
 }
 
-const AUDIO_EXTENSIONS = new Set([
+export const AUDIO_EXTENSIONS = new Set([
   "ogg",
   "opus",
   "mp3",
@@ -39,6 +39,19 @@ const AUDIO_EXTENSIONS = new Set([
   "webm",
   "flac",
 ]);
+
+export function isAudioFilename(name: string): boolean {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return false;
+  }
+  const base = trimmed.split(/[\\/]/).pop() ?? trimmed;
+  const withoutAlias = base.split("|")[0]?.split("#")[0]?.trim() ?? base;
+  const ext = withoutAlias.includes(".")
+    ? withoutAlias.split(".").pop()?.toLowerCase() ?? ""
+    : "";
+  return AUDIO_EXTENSIONS.has(ext);
+}
 
 /** Voice notes and audio files that should go through ProxyAPI transcription. */
 export function isAudioMessage(message: TelegramMessage): boolean {
@@ -52,11 +65,7 @@ export function isAudioMessage(message: TelegramMessage): boolean {
     return true;
   }
 
-  const name = message.file_name?.trim() || "";
-  const ext = name.includes(".")
-    ? name.split(".").pop()?.toLowerCase() ?? ""
-    : "";
-  return AUDIO_EXTENSIONS.has(ext);
+  return isAudioFilename(message.file_name?.trim() || "");
 }
 
 export function isTranscribed(message: TelegramMessage): boolean {

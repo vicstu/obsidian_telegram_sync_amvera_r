@@ -1,4 +1,4 @@
-import { Notice, Plugin } from "obsidian";
+import { Editor, Notice, Plugin } from "obsidian";
 
 import { activityLog } from "./activity-log";
 import { openActivityLogModal } from "./activity-log-modal";
@@ -8,6 +8,7 @@ import {
 } from "./proxyapi";
 import { TelegramSyncSettingTab, mergeSettings } from "./settings";
 import { MessageSyncService } from "./sync";
+import { transcribeAudioUnderCursor } from "./transcribe-under-cursor";
 import { TelegramSyncSettings } from "./types";
 
 export default class TelegramSyncPlugin extends Plugin {
@@ -24,6 +25,23 @@ export default class TelegramSyncPlugin extends Plugin {
       callback: () => {
         activityLog.info("command", "Command: Fetch new messages");
         void this.syncNewMessages();
+      },
+    });
+
+    this.addCommand({
+      id: "obsidian-telegram-sync-amvera-transcribe-audio-under-cursor",
+      name: "Transcribe audio under cursor / selection",
+      editorCallback: (editor: Editor, ctx) => {
+        activityLog.info(
+          "command",
+          "Command: Transcribe audio under cursor / selection",
+        );
+        void transcribeAudioUnderCursor(
+          this.app,
+          editor,
+          ctx.file ?? null,
+          this.settings,
+        );
       },
     });
 

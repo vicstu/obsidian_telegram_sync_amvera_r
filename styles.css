@@ -133,3 +133,53 @@
   box-sizing: border-box;
   resize: vertical;
 }
+
+.telegram-sync-about {
+  margin: 0 0 1.25em;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.45;
+}
+
+.telegram-sync-about p {
+  margin: 0 0 0.6em;
+}
+
+.telegram-sync-about-list {
+  margin: 0 0 0.6em;
+  padding-left: 1.4em;
+}
+
+.telegram-sync-about-list li {
+  margin-bottom: 0.35em;
+}
+
+.telegram-sync-about-note {
+  margin: 0.5em 0 1em;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.45;
+}
+
+.telegram-sync-check-status {
+  margin: -0.4em 0 1em;
+  font-size: var(--font-ui-small);
+  line-height: 1.4;
+  min-height: 1.2em;
+}
+
+.telegram-sync-check-status.is-ok {
+  color: var(--text-success);
+}
+
+.telegram-sync-check-status.is-warn {
+  color: var(--text-warning);
+}
+
+.telegram-sync-check-status.is-error {
+  color: var(--text-error);
+}
+
+.telegram-sync-setting-desc-extra {
+  margin-top: 0.35em;
+}

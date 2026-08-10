@@ -15,8 +15,9 @@ import {
   processTextViaProxyApi,
   transcribeAudioViaProxyApi,
 } from "./proxyapi";
-import { TelegramMessage, TelegramSyncSettings, TRANSCRIPTION_MODEL } from "./types";
+import { TelegramMessage, TelegramSyncSettings, TRANSCRIPTION_MODEL, getEffectiveServerUrl } from "./types";
 import { loadEntryTemplate } from "./template";
+import { getSettingsStrings } from "./settings-i18n";
 
 async function ensureFolder(app: App, folderPath: string): Promise<void> {
   const parts = folderPath.replace(/\\/g, "/").split("/").filter(Boolean);
@@ -57,10 +58,45 @@ export class MessageSyncService {
     limit?: number;
     label: string;
   }): Promise<void> {
+    const strings = getSettingsStrings();
+
+    if (this.settings.syncArchitecture === "direct") {
+      new Notice(strings.directNotImplemented, 8000);
+      activityLog.warn("sync", strings.directNotImplemented);
+      return;
+    }
+
+    if (
+      !this.settings.useDefaultServer &&
+      !this.settings.serverUrl.trim()
+    ) {
+      new Notice(strings.missingCustomServer, 6000);
+      return;
+    }
+
+    if (
+      !this.settings.useDefaultServer &&
+      !this.settings.telegramBotToken.trim()
+    ) {
+      new Notice(strings.missingBotToken, 6000);
+      return;
+    }
+
+    if (!this.settings.telegramUserId.trim()) {
+      new Notice(strings.telegramCheckMissingUserId, 6000);
+      return;
+    }
+
     const client = this.createClient();
+    let serverLabel = "server";
+    try {
+      serverLabel = getEffectiveServerUrl(this.settings);
+    } catch {
+      // getEffectiveServerUrl may throw; validation above covers the usual cases
+    }
     const processId = activityLog.startProcess(
       `Sync ${options.label} messages`,
-      `server=${this.settings.serverUrl} · target=${this.settings.targetFile}`,
+      `server=${serverLabel} · target=${this.settings.targetFile}`,
     );
 
     try {

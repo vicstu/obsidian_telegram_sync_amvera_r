@@ -1,12 +1,7 @@
-import {
-  resolveSettingsUiLanguage,
-  SettingsUiLanguage,
-} from "./settings-i18n";
-
-export type { SettingsUiLanguage };
+export type { SettingsUiLanguage } from "./settings-i18n";
 export {
-  resolveSettingsUiLanguage,
-  SETTINGS_UI_LANGUAGES,
+  detectSettingsUiLanguage,
+  getSettingsStrings,
 } from "./settings-i18n";
 
 export interface TelegramMessage {
@@ -40,6 +35,8 @@ export interface MarkProcessedResponse {
 export interface StatusResponse {
   user_id: number;
   sync_ready: boolean;
+  /** Unsynced messages for this user; present on current servers. */
+  pending_count?: number;
 }
 
 export interface SyncMessagesRequest {
@@ -57,14 +54,37 @@ export interface ConnectionCheckResult {
 export const DEFAULT_SERVER_URL =
   "https://bots-and-pages-myeasycoding.waw0.amvera.tech";
 
+/** Auth value sent to the default shared sync server. */
+export const DEFAULT_SERVER_API_TOKEN = "default";
+
+export type SyncArchitecture = "direct" | "via-server";
+
+export const SYNC_ARCHITECTURES = [
+  { id: "direct" as const, labelKey: "architectureDirect" as const },
+  { id: "via-server" as const, labelKey: "architectureViaServer" as const },
+];
+
+export function resolveSyncArchitecture(
+  value: string | null | undefined,
+): SyncArchitecture {
+  return value === "direct" ? "direct" : "via-server";
+}
+
 export interface TelegramSyncSettings {
+  /** How messages reach Obsidian: direct Telegram API or via sync server. */
+  syncArchitecture: SyncArchitecture;
+  /** Bot token from @BotFather. */
+  telegramBotToken: string;
+  /** Numeric Telegram user ID (not username). */
+  telegramUserId: string;
+  /** When true (via-server), use the built-in default sync server. */
+  useDefaultServer: boolean;
+  /** Custom sync server URL (used when useDefaultServer is false). */
   serverUrl: string;
   targetFile: string;
   templateFile: string;
   attachmentsFolder: string;
   proxyApiKey: string;
-  /** UI language for the plugin settings tab. */
-  settingsUiLanguage: SettingsUiLanguage;
   /** Send voice/audio attachments to ProxyAPI for transcription during sync. */
   transcribeAudio: boolean;
   /** After transcription, send text to a chat model with the command prompt. */
@@ -72,6 +92,34 @@ export interface TelegramSyncSettings {
   postProcessModel: PostProcessModelId;
   /** Instructions for what to do with the transcribed text. */
   postProcessPrompt: string;
+}
+
+/** Effective base URL for via-server requests. */
+export function getEffectiveServerUrl(settings: TelegramSyncSettings): string {
+  if (settings.useDefaultServer) {
+    return DEFAULT_SERVER_URL;
+  }
+  const custom = settings.serverUrl.trim().replace(/\/+$/, "");
+  if (!custom) {
+    throw new Error("Custom server URL is not configured");
+  }
+  return custom;
+}
+
+/**
+ * Token sent to the sync server API:
+ * - default shared server → "default"
+ * - custom server → Telegram bot token
+ */
+export function getServerApiAuthToken(settings: TelegramSyncSettings): string {
+  if (settings.useDefaultServer) {
+    return DEFAULT_SERVER_API_TOKEN;
+  }
+  const token = settings.telegramBotToken.trim();
+  if (!token) {
+    throw new Error("Telegram bot token is not configured");
+  }
+  return token;
 }
 
 export const DEFAULT_ENTRY_TEMPLATE = `**{{sender}}** · {{date}} {{time}}
@@ -109,12 +157,15 @@ export const DEFAULT_POST_PROCESS_PROMPT =
   "Исправь ошибки распознавания речи, расставь пунктуацию и абзацы. Сохрани смысл и язык оригинала. Верни только итоговый текст без пояснений.";
 
 export const DEFAULT_SETTINGS: TelegramSyncSettings = {
-  serverUrl: DEFAULT_SERVER_URL,
+  syncArchitecture: "via-server",
+  telegramBotToken: "",
+  telegramUserId: "",
+  useDefaultServer: true,
+  serverUrl: "",
   targetFile: DEFAULT_TARGET_FILE,
   templateFile: DEFAULT_TEMPLATE_FILE,
   attachmentsFolder: "Telegram/Media",
   proxyApiKey: "",
-  settingsUiLanguage: "en",
   transcribeAudio: false,
   postProcessTranscription: false,
   postProcessModel: DEFAULT_POST_PROCESS_MODEL,
@@ -124,16 +175,28 @@ export const DEFAULT_SETTINGS: TelegramSyncSettings = {
 export function mergeSettings(
   stored: Partial<TelegramSyncSettings> | null | undefined,
 ): TelegramSyncSettings {
+  const storedUrl = stored?.serverUrl?.trim() || "";
+  const useDefaultServer =
+    stored?.useDefaultServer ??
+    (!storedUrl || storedUrl === DEFAULT_SERVER_URL);
+
   return {
     ...DEFAULT_SETTINGS,
     ...stored,
-    serverUrl: stored?.serverUrl?.trim() || DEFAULT_SERVER_URL,
+    syncArchitecture: "via-server",
+    telegramBotToken: stored?.telegramBotToken?.trim() || "",
+    telegramUserId: stored?.telegramUserId?.trim() || "",
+    useDefaultServer,
+    serverUrl: useDefaultServer
+      ? ""
+      : storedUrl === DEFAULT_SERVER_URL
+        ? ""
+        : storedUrl,
     targetFile: stored?.targetFile?.trim() || DEFAULT_TARGET_FILE,
     templateFile: stored?.templateFile?.trim() || DEFAULT_TEMPLATE_FILE,
     attachmentsFolder:
       stored?.attachmentsFolder?.trim() || DEFAULT_SETTINGS.attachmentsFolder,
     proxyApiKey: stored?.proxyApiKey?.trim() || "",
-    settingsUiLanguage: resolveSettingsUiLanguage(stored?.settingsUiLanguage),
     transcribeAudio: stored?.transcribeAudio ?? DEFAULT_SETTINGS.transcribeAudio,
     postProcessTranscription:
       stored?.postProcessTranscription ??

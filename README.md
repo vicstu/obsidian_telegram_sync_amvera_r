@@ -1,249 +1,5 @@
 # Telegram Sync Amvera
 
-Плагин [Obsidian](https://obsidian.md/) для синхронизации сообщений из личного Telegram-бота в vault.
-
-Сообщения сначала попадают на ваш sync-сервер на [Amvera](https://amvera.ru/), а плагин по команде забирает их в заметки. Опционально голосовые и аудио можно транскрибировать через [ProxyAPI](https://proxyapi.ru/).
-
-**Только desktop** (Obsidian 1.5.0+).
-
----
-
-## Что нужно заранее
-
-1. Установить плагин в Obsidian.
-2. Создать Telegram-бота.
-3. Развернуть sync-сервер на Amvera.
-4. Настроить плагин и проверить связь.
-
-Ниже — по шагам.
-
----
-
-## 1. Установите плагин
-
-### Через пользовательские (Community) плагины
-
-1. Откройте **Настройки → Сторонние плагины** (Community plugins).
-2. Отключите безопасный режим, если он включён.
-3. Найдите **Telegram Sync Amvera**, установите и включите.
-
-### Ручная установка
-
-1. Скачайте `main.js`, `manifest.json` и `styles.css` из релизов репозитория плагина.
-2. Создайте папку:
-
-```text
-<ваш-vault>/.obsidian/plugins/telegram-sync-amvera-r/
-```
-
-3. Скопируйте туда все три файла.
-4. В **Сторонние плагины** включите **Telegram Sync Amvera**.
-
-На этом этапе плагин уже есть в Obsidian, но без бота и сервера синхронизация работать не будет.
-
----
-
-## 2. Создайте Telegram-бота
-
-1. В Telegram откройте [@BotFather](https://t.me/BotFather).
-2. Отправьте `/newbot`.
-3. Укажите **имя** бота (как его будут видеть люди), например: `My Obsidian Sync`.
-4. Укажите **username** бота (должен заканчиваться на `bot`), например: `my_obsidian_sync_bot`.
-5. BotFather пришлёт **токен** вида:
-
-```text
-1234567890:AAHxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-Сохраните токен — он понадобится на сервере (`TELEGRAM_OBSIDIAN_BOT_TOKEN`). Никому его не передавайте.
-
-6. Узнайте свой **Telegram user ID** (число, не username):
-   - откройте [@userinfobot](https://t.me/userinfobot) или [@getmyid_bot](https://t.me/getmyid_bot);
-   - отправьте любое сообщение и скопируйте ваш `Id` / `user id`.
-
-Этот ID понадобится как `MY_TELEGRAM_USER_ID`: бот принимает сообщения **только от вас**.
-
-7. Откройте своего нового бота в Telegram и нажмите **Start** (`/start`), чтобы чат был активен.
-
----
-
-## 3. Разверните sync-сервер на Amvera
-
-Плагину нужен backend: он принимает сообщения от бота, кладёт их в очередь и отдаёт Obsidian по API.
-
-Исходники сервера: **[файлы сервера на GitHub](https://github.com/vicstu/YOUR-SERVER-REPO)**  
-*(замените ссылку на актуальный репозиторий с кодом Amvera-проекта).*
-
-### 3.1. Регистрация и проект
-
-1. Зарегистрируйтесь на [Amvera](https://amvera.ru/).
-2. Создайте новый проект (приложение).
-3. Подключите репозиторий с сервером или загрузите файлы проекта в Amvera (как удобнее в вашем тарифе/интерфейсе).
-
-В корне проекта должны быть, в частности:
-
-- `amvera.yml` — сборка и запуск;
-- `main.py`, `requirements.txt`;
-- код API и Telegram-бота для Obsidian sync.
-
-### 3.2. Переменные окружения
-
-В настройках проекта Amvera задайте:
-
-| Переменная | Значение |
-|------------|----------|
-| `TELEGRAM_OBSIDIAN_BOT_TOKEN` | токен от BotFather |
-| `MY_TELEGRAM_USER_ID` | ваш числовой Telegram user ID |
-
-Без этих переменных sync на сервере не считается настроенным.
-
-При необходимости можно задать также `TELEGRAM_MEDIA_FOLDER` (по умолчанию `/data/telegram_media`) и `LOG_LEVEL`.
-
-Убедитесь, что у приложения есть **постоянное хранилище** (в `amvera.yml` обычно `persistenceMount: /data`) — туда пишется база сообщений.
-
-### 3.3. Запуск
-
-1. Задеплойте / запустите приложение в Amvera.
-2. Дождитесь успешного статуса деплоя.
-3. Скопируйте **публичный URL** приложения, например:
-
-```text
-https://ваш-проект-xxx.amvera.tech
-```
-
-Без слэша в конце — его потом вставите в настройки плагина.
-
-### 3.4. Проверьте, что сервер работает
-
-1. В браузере откройте health-эндпоинт вашего приложения (часто `/health`), например:
-
-```text
-https://ваш-проект-xxx.amvera.tech/health
-```
-
-Должен быть успешный ответ (не ошибка 502/404 от хостинга).
-
-2. Напишите боту в Telegram текст или голосовое — сообщение должно уйти на сервер в очередь.
-3. В логах Amvera не должно быть ошибок вроде «токен не задан» или падения при старте бота.
-
-Когда сервер отвечает и бот принимает ваши сообщения — можно настраивать плагин.
-
----
-
-## 4. Настройка плагина
-
-Откройте **Настройки → Telegram Sync Amvera**.
-
-При желании переключите **язык настроек** на русский.
-
-### Amvera server
-
-| Параметр | Что указать |
-|----------|-------------|
-| **Server URL** | Публичный URL вашего приложения на Amvera **без** `/` в конце |
-| **Connection check** | Нажмите **Check** — сервер должен быть доступен, Telegram sync — ready |
-
-Если Check пишет, что sync не готов: проверьте переменные `TELEGRAM_OBSIDIAN_BOT_TOKEN` и `MY_TELEGRAM_USER_ID` и перезапуск приложения на Amvera.
-
-### Obsidian links
-
-| Параметр | По умолчанию | Назначение |
-|----------|--------------|------------|
-| **Template file** | `Telegram/template.md` | Шаблон одной записи |
-| **Target file** | `Telegram/Inbox.md` | Куда дописываются новые сообщения |
-| **Attachments Folder** | `Telegram/Media` | Куда сохраняются медиа |
-
-Файлы и папки создадутся при первой синхронизации, если их ещё нет (шаблон — с содержимым по умолчанию).
-
-### ProxyAPI (необязательно)
-
-Нужно только если хотите транскрибировать голосовые/аудио при sync.
-
-1. Зарегистрируйтесь на [ProxyAPI](https://proxyapi.ru/).
-2. Создайте API-ключ. **Обязательно** включите разрешение **«Запрос баланса»** (Balance request) — без него плагин не сможет проверить баланс и нормально работать с ключом.
-3. Включите **Transcribe audio**.
-4. Вставьте **API key**.
-5. При необходимости включите **Post-process transcription**, выберите модель и задайте prompt.
-
-Тарифы: [proxyapi.ru/pricing/list](https://proxyapi.ru/pricing/list).  
-Ограничение: размер аудиофайла для транскрибации **не больше 25 МБ**.
-
----
-
-## 5. Как пользоваться
-
-1. Пишите боту в Telegram (текст, фото, voice, файлы).
-2. В Obsidian откройте Command Palette (`Ctrl` / `Cmd` + `P`) и выполните **Fetch new messages**.
-3. Новые записи появятся в target-файле, медиа — в папке вложений.
-
-Полезные команды:
-
-| Команда | Действие |
-|---------|----------|
-| **Fetch new messages** | Забрать новые сообщения с сервера |
-| **Check ProxyAPI balance** | Показать баланс ProxyAPI |
-| **Open activity log** | Журнал запросов и процессов плагина |
-
----
-
-## Шаблон сообщения
-
-Переменные в template-файле:
-
-| Переменная | Значение |
-|------------|----------|
-| `{{date}}` | Дата |
-| `{{time}}` | Время |
-| `{{created}}` | Дата и время |
-| `{{sender}}` | Имя отправителя |
-| `{{sender_id}}` | ID отправителя |
-| `{{message_id}}` | ID сообщения |
-| `{{type}}` | Тип (text, voice, photo, …) |
-| `{{text}}` | Текст / подпись |
-| `{{attachment}}` | Путь к файлу в vault |
-| `{{file}}` | Имя файла |
-| `{{transcription}}` | Текст транскрипции |
-| `{{tags}}` | Теги (для аудио при включённой транскрибации — `#ГГГГ-месяц` и `#ГГГГ-год`) |
-
-Пример:
-
-```markdown
-**{{sender}}** · {{date}} {{time}}
-{{tags}}
-{{text}}
-![[{{attachment}}]]
-{{transcription}}
-```
-
-Для вставки файла: `![[{{attachment}}]]`, для ссылки: `[[{{attachment}}]]`.
-
----
-
-## Краткий чеклист
-
-- [ ] Плагин установлен и включён
-- [ ] Бот создан в BotFather, токен сохранён
-- [ ] Известен ваш Telegram user ID
-- [ ] С ботом начат диалог (`/start`)
-- [ ] Проект на Amvera создан, файлы сервера загружены
-- [ ] Заданы `TELEGRAM_OBSIDIAN_BOT_TOKEN` и `MY_TELEGRAM_USER_ID`
-- [ ] Приложение запущено, URL скопирован
-- [ ] Health / логи в порядке, бот принимает сообщения
-- [ ] В плагине указан Server URL, **Connection check** успешен
-- [ ] Выполнена команда **Fetch new messages**
-
----
-
-## Лицензия
-
-MIT
-
----
-
-# English
-
-# Telegram Sync Amvera
-
 An [Obsidian](https://obsidian.md/) plugin that syncs messages from your personal Telegram bot into your vault.
 
 Messages first go to your sync server on [Amvera](https://amvera.ru/), and the plugin pulls them into notes on command. Optionally, voice and audio can be transcribed via [ProxyAPI](https://proxyapi.ru/).
@@ -378,7 +134,7 @@ When the server responds and the bot accepts your messages, you can configure th
 
 Open **Settings → Telegram Sync Amvera**.
 
-Optionally switch the **settings language** to English or Russian.
+Settings language follows Obsidian’s interface language: Russian UI → Russian settings, otherwise English.
 
 ### Amvera server
 
@@ -425,8 +181,11 @@ Useful commands:
 | Command | Action |
 |---------|--------|
 | **Fetch new messages** | Pull new messages from the server |
+| **Transcribe audio under cursor / selection** | Transcribe the audio link under the cursor or in the selection; text is inserted right after the link |
 | **Check ProxyAPI balance** | Show ProxyAPI balance |
 | **Open activity log** | Plugin request and process log |
+
+For manual transcription, place the cursor on `![[file.ogg]]` (or select the link), set a ProxyAPI key, and run the command. If post-process is enabled, it applies here too. You can bind this command to a Buttons plugin button.
 
 ---
 
@@ -478,6 +237,312 @@ To embed a file: `![[{{attachment}}]]`; to link: `[[{{attachment}}]]`.
 
 ---
 
+## Build and GitHub release
+
+Requirements: **Node.js** 18+ and npm.
+
+```bash
+cd obsidian-telegram-plugin
+npm install
+npm run build
+```
+
+`npm run build` type-checks TypeScript and writes a minified `main.js` in the plugin root.
+
+Before a release, bump `version` in both `manifest.json` and `package.json` (keep them equal).
+
+### Files for a GitHub Release
+
+Attach these **three** files as release assets (same set users download for manual install):
+
+| File | Role |
+|------|------|
+| `main.js` | Bundled plugin code (from `npm run build`) |
+| `manifest.json` | Plugin id, name, version, `minAppVersion` |
+| `styles.css` | Plugin styles |
+
+Do **not** put `node_modules`, source maps, or the whole repo zip as the only install path — users need the three files above in `.obsidian/plugins/telegram-sync-amvera-r/`.
+
+`versions.json` is only needed if you publish to the Obsidian Community plugins catalog; it is optional for a plain GitHub Release.
+
+---
+
 ## License
+
+MIT
+
+---
+---
+
+# Telegram Sync Amvera
+
+Плагин [Obsidian](https://obsidian.md/) для синхронизации сообщений из личного Telegram-бота в vault.
+
+Сообщения сначала попадают на ваш sync-сервер на [Amvera](https://amvera.ru/), а плагин по команде забирает их в заметки. Опционально голосовые и аудио можно транскрибировать через [ProxyAPI](https://proxyapi.ru/).
+
+**Только desktop** (Obsidian 1.5.0+).
+
+---
+
+## Что нужно заранее
+
+1. Установить плагин в Obsidian.
+2. Создать Telegram-бота.
+3. Развернуть sync-сервер на Amvera.
+4. Настроить плагин и проверить связь.
+
+Ниже — по шагам.
+
+---
+
+## 1. Установите плагин
+
+### Через пользовательские (Community) плагины
+
+1. Откройте **Настройки → Сторонние плагины** (Community plugins).
+2. Отключите безопасный режим, если он включён.
+3. Найдите **Telegram Sync Amvera**, установите и включите.
+
+### Ручная установка
+
+1. Скачайте `main.js`, `manifest.json` и `styles.css` из релизов репозитория плагина.
+2. Создайте папку:
+
+```text
+<ваш-vault>/.obsidian/plugins/telegram-sync-amvera-r/
+```
+
+3. Скопируйте туда все три файла.
+4. В **Сторонние плагины** включите **Telegram Sync Amvera**.
+
+На этом этапе плагин уже есть в Obsidian, но без бота и сервера синхронизация работать не будет.
+
+---
+
+## 2. Создайте Telegram-бота
+
+1. В Telegram откройте [@BotFather](https://t.me/BotFather).
+2. Отправьте `/newbot`.
+3. Укажите **имя** бота (как его будут видеть люди), например: `My Obsidian Sync`.
+4. Укажите **username** бота (должен заканчиваться на `bot`), например: `my_obsidian_sync_bot`.
+5. BotFather пришлёт **токен** вида:
+
+```text
+1234567890:AAHxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+Сохраните токен — он понадобится на сервере (`TELEGRAM_OBSIDIAN_BOT_TOKEN`). Никому его не передавайте.
+
+6. Узнайте свой **Telegram user ID** (число, не username):
+   - откройте [@userinfobot](https://t.me/userinfobot) или [@getmyid_bot](https://t.me/getmyid_bot);
+   - отправьте любое сообщение и скопируйте ваш `Id` / `user id`.
+
+Этот ID понадобится как `MY_TELEGRAM_USER_ID`: бот принимает сообщения **только от вас**.
+
+7. Откройте своего нового бота в Telegram и нажмите **Start** (`/start`), чтобы чат был активен.
+
+---
+
+## 3. Разверните sync-сервер на Amvera
+
+Плагину нужен backend: он принимает сообщения от бота, кладёт их в очередь и отдаёт Obsidian по API.
+
+Исходники сервера: **[файлы сервера на GitHub](https://github.com/vicstu/YOUR-SERVER-REPO)**  
+*(замените ссылку на актуальный репозиторий с кодом Amvera-проекта).*
+
+### 3.1. Регистрация и проект
+
+1. Зарегистрируйтесь на [Amvera](https://amvera.ru/).
+2. Создайте новый проект (приложение).
+3. Подключите репозиторий с сервером или загрузите файлы проекта в Amvera (как удобнее в вашем тарифе/интерфейсе).
+
+В корне проекта должны быть, в частности:
+
+- `amvera.yml` — сборка и запуск;
+- `main.py`, `requirements.txt`;
+- код API и Telegram-бота для Obsidian sync.
+
+### 3.2. Переменные окружения
+
+В настройках проекта Amvera задайте:
+
+| Переменная | Значение |
+|------------|----------|
+| `TELEGRAM_OBSIDIAN_BOT_TOKEN` | токен от BotFather |
+| `MY_TELEGRAM_USER_ID` | ваш числовой Telegram user ID |
+
+Без этих переменных sync на сервере не считается настроенным.
+
+При необходимости можно задать также `TELEGRAM_MEDIA_FOLDER` (по умолчанию `/data/telegram_media`) и `LOG_LEVEL`.
+
+Убедитесь, что у приложения есть **постоянное хранилище** (в `amvera.yml` обычно `persistenceMount: /data`) — туда пишется база сообщений.
+
+### 3.3. Запуск
+
+1. Задеплойте / запустите приложение в Amvera.
+2. Дождитесь успешного статуса деплоя.
+3. Скопируйте **публичный URL** приложения, например:
+
+```text
+https://ваш-проект-xxx.amvera.tech
+```
+
+Без слэша в конце — его потом вставите в настройки плагина.
+
+### 3.4. Проверьте, что сервер работает
+
+1. В браузере откройте health-эндпоинт вашего приложения (часто `/health`), например:
+
+```text
+https://ваш-проект-xxx.amvera.tech/health
+```
+
+Должен быть успешный ответ (не ошибка 502/404 от хостинга).
+
+2. Напишите боту в Telegram текст или голосовое — сообщение должно уйти на сервер в очередь.
+3. В логах Amvera не должно быть ошибок вроде «токен не задан» или падения при старте бота.
+
+Когда сервер отвечает и бот принимает ваши сообщения — можно настраивать плагин.
+
+---
+
+## 4. Настройка плагина
+
+Откройте **Настройки → Telegram Sync Amvera**.
+
+Язык настроек совпадает с языком интерфейса Obsidian: русский → русские настройки, иначе английские.
+
+### Amvera server
+
+| Параметр | Что указать |
+|----------|-------------|
+| **Server URL** | Публичный URL вашего приложения на Amvera **без** `/` в конце |
+| **Connection check** | Нажмите **Check** — сервер должен быть доступен, Telegram sync — ready |
+
+Если Check пишет, что sync не готов: проверьте переменные `TELEGRAM_OBSIDIAN_BOT_TOKEN` и `MY_TELEGRAM_USER_ID` и перезапуск приложения на Amvera.
+
+### Obsidian links
+
+| Параметр | По умолчанию | Назначение |
+|----------|--------------|------------|
+| **Template file** | `Telegram/template.md` | Шаблон одной записи |
+| **Target file** | `Telegram/Inbox.md` | Куда дописываются новые сообщения |
+| **Attachments Folder** | `Telegram/Media` | Куда сохраняются медиа |
+
+Файлы и папки создадутся при первой синхронизации, если их ещё нет (шаблон — с содержимым по умолчанию).
+
+### ProxyAPI (необязательно)
+
+Нужно только если хотите транскрибировать голосовые/аудио при sync.
+
+1. Зарегистрируйтесь на [ProxyAPI](https://proxyapi.ru/).
+2. Создайте API-ключ. **Обязательно** включите разрешение **«Запрос баланса»** (Balance request) — без него плагин не сможет проверить баланс и нормально работать с ключом.
+3. Включите **Transcribe audio**.
+4. Вставьте **API key**.
+5. При необходимости включите **Post-process transcription**, выберите модель и задайте prompt.
+
+Тарифы: [proxyapi.ru/pricing/list](https://proxyapi.ru/pricing/list).  
+Ограничение: размер аудиофайла для транскрибации **не больше 25 МБ**.
+
+---
+
+## 5. Как пользоваться
+
+1. Пишите боту в Telegram (текст, фото, voice, файлы).
+2. В Obsidian откройте Command Palette (`Ctrl` / `Cmd` + `P`) и выполните **Fetch new messages**.
+3. Новые записи появятся в target-файле, медиа — в папке вложений.
+
+Полезные команды:
+
+| Команда | Действие |
+|---------|----------|
+| **Fetch new messages** | Забрать новые сообщения с сервера |
+| **Transcribe audio under cursor / selection** | Транскрибировать аудиоссылку под курсором или в выделении; текст вставляется сразу после ссылки |
+| **Check ProxyAPI balance** | Показать баланс ProxyAPI |
+| **Open activity log** | Журнал запросов и процессов плагина |
+
+Для ручной транскрибации поставьте курсор на `![[файл.ogg]]` (или выделите ссылку), задайте ProxyAPI key и выполните команду. Если включён post-process — он применится и здесь. Команду можно повесить на кнопку плагина Buttons.
+
+---
+
+## Шаблон сообщения
+
+Переменные в template-файле:
+
+| Переменная | Значение |
+|------------|----------|
+| `{{date}}` | Дата |
+| `{{time}}` | Время |
+| `{{created}}` | Дата и время |
+| `{{sender}}` | Имя отправителя |
+| `{{sender_id}}` | ID отправителя |
+| `{{message_id}}` | ID сообщения |
+| `{{type}}` | Тип (text, voice, photo, …) |
+| `{{text}}` | Текст / подпись |
+| `{{attachment}}` | Путь к файлу в vault |
+| `{{file}}` | Имя файла |
+| `{{transcription}}` | Текст транскрипции |
+| `{{tags}}` | Теги (для аудио при включённой транскрибации — `#ГГГГ-месяц` и `#ГГГГ-год`) |
+
+Пример:
+
+```markdown
+**{{sender}}** · {{date}} {{time}}
+{{tags}}
+{{text}}
+![[{{attachment}}]]
+{{transcription}}
+```
+
+Для вставки файла: `![[{{attachment}}]]`, для ссылки: `[[{{attachment}}]]`.
+
+---
+
+## Краткий чеклист
+
+- [ ] Плагин установлен и включён
+- [ ] Бот создан в BotFather, токен сохранён
+- [ ] Известен ваш Telegram user ID
+- [ ] С ботом начат диалог (`/start`)
+- [ ] Проект на Amvera создан, файлы сервера загружены
+- [ ] Заданы `TELEGRAM_OBSIDIAN_BOT_TOKEN` и `MY_TELEGRAM_USER_ID`
+- [ ] Приложение запущено, URL скопирован
+- [ ] Health / логи в порядке, бот принимает сообщения
+- [ ] В плагине указан Server URL, **Connection check** успешен
+- [ ] Выполнена команда **Fetch new messages**
+
+---
+
+## Сборка и релиз на GitHub
+
+Нужны **Node.js** 18+ и npm.
+
+```bash
+cd obsidian-telegram-plugin
+npm install
+npm run build
+```
+
+`npm run build` проверяет TypeScript и собирает минифицированный `main.js` в корне плагина.
+
+Перед релизом поднимите `version` в `manifest.json` и `package.json` (значения должны совпадать).
+
+### Файлы для GitHub Release
+
+В assets релиза приложите **три** файла (те же, что качают при ручной установке):
+
+| Файл | Назначение |
+|------|------------|
+| `main.js` | Собранный код плагина (результат `npm run build`) |
+| `manifest.json` | id, имя, версия, `minAppVersion` |
+| `styles.css` | Стили плагина |
+
+Не выкладывайте как единственный способ установки `node_modules`, source maps или весь zip репозитория — пользователю нужны три файла выше в `.obsidian/plugins/telegram-sync-amvera-r/`.
+
+`versions.json` нужен только при публикации в каталог Community plugins Obsidian; для обычного GitHub Release он необязателен.
+
+---
+
+## Лицензия
 
 MIT
