@@ -4,7 +4,7 @@ An [Obsidian](https://obsidian.md/) plugin that syncs messages from your persona
 
 Messages first go to your sync server on [Amvera](https://amvera.ru/), where they are stored until you sync them into Obsidian. After a successful sync they are **removed from the server** and **not kept in any form**. The plugin pulls them into notes when you run **Fetch new messages**. Optionally, voice and audio can be transcribed via [ProxyAPI](https://proxyapi.ru/).
 
-**Desktop only** (Obsidian 1.5.0+).
+**Desktop only** (Obsidian 1.8.7+).
 
 **Links**
 
@@ -312,7 +312,7 @@ MIT
 
 Сообщения сначала попадают на ваш sync-сервер на [Amvera](https://amvera.ru/), где хранятся, пока вы не синхронизируете их в Obsidian. После успешной синхронизации они **удаляются с сервера** и **нигде больше не хранятся**. Плагин забирает их в заметки по команде **Fetch new messages**. Опционально голосовые и аудио можно транскрибировать через [ProxyAPI](https://proxyapi.ru/).
 
-**Только desktop** (Obsidian 1.5.0+).
+**Только desktop** (Obsidian 1.8.7+).
 
 **Ссылки**
 

@@ -4,22 +4,8 @@ export type SettingsUiLanguage = "en" | "ru";
 
 /** Resolve settings UI language from Obsidian app language. Non-Russian → English. */
 export function detectSettingsUiLanguage(): SettingsUiLanguage {
-  let code = "";
-
-  try {
-    if (typeof getLanguage === "function") {
-      code = getLanguage();
-    }
-  } catch {
-    // Older Obsidian builds may not expose getLanguage.
-  }
-
-  if (!code) {
-    code = window.localStorage.getItem("language") ?? "";
-  }
-
-  const normalized = code.trim().toLowerCase();
-  return normalized === "ru" || normalized.startsWith("ru-") ? "ru" : "en";
+  const code = getLanguage().trim().toLowerCase();
+  return code === "ru" || code.startsWith("ru-") ? "ru" : "en";
 }
 
 type SettingsStrings = {

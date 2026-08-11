@@ -1,8 +1,8 @@
 {
   "id": "telegram-sync-amvera-r",
   "name": "Telegram Sync Amvera R",
-  "version": "0.1.6",
-  "minAppVersion": "1.5.0",
+  "version": "1.2.1",
+  "minAppVersion": "1.8.7",
   "description": "Sync messages from Telegram bot into your vault, with audio transcription and AI post-processing.",
   "author": "Victor Stupin",
   "authorUrl": "https://github.com/vicstu",

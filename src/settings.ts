@@ -1,7 +1,15 @@
-import { App, ButtonComponent, Notice, PluginSettingTab, Setting } from "obsidian";
+import {
+  App,
+  ButtonComponent,
+  Notice,
+  PluginSettingTab,
+  Setting,
+  SettingDefinitionItem,
+} from "obsidian";
 
 import { TelegramApiClient } from "./api";
 import TelegramSyncPlugin from "./main";
+import { isObsidianAtLeast } from "./obsidian-version";
 import {
   fetchProxyApiBalance,
   formatProxyApiBalance,
@@ -54,49 +62,253 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
   }
 
   display(): void {
-    this.renderSettings();
+    if (isObsidianAtLeast("1.13.0")) {
+      return;
+    }
+    this.renderSettings(this.containerEl);
   }
 
-  private renderSettings(): void {
-    const { containerEl } = this;
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    if (!isObsidianAtLeast("1.13.0")) {
+      return [];
+    }
+
+    const t = this.t();
+
+    return [
+      {
+        type: "group",
+        heading: t.about,
+        items: [
+          {
+            name: t.aboutIntro,
+            desc: `${t.aboutBulletDirect} ${t.aboutBulletViaServer}`,
+            searchable: true,
+          },
+        ],
+      },
+      {
+        type: "group",
+        heading: t.architecture,
+        items: [
+          {
+            name: t.architecture,
+            desc: t.architectureDesc,
+            render: (setting) => {
+              this.renderArchitectureControls(setting.settingEl);
+            },
+          },
+          {
+            name: t.viaServerMode,
+            desc: t.viaServerModeDesc,
+            render: (setting) => {
+              this.renderViaServerModeControl(setting.settingEl);
+            },
+          },
+        ],
+      },
+      {
+        type: "group",
+        heading: t.telegram,
+        items: [
+          {
+            name: t.telegramBotToken,
+            render: (setting) => {
+              this.renderTelegramTokenControl(setting.settingEl);
+            },
+          },
+          {
+            name: t.telegramUserId,
+            desc: this.plugin.settings.useDefaultServer
+              ? t.telegramUserIdDescDefault
+              : t.telegramUserIdDesc,
+            control: {
+              type: "text",
+              key: "telegramUserId",
+              placeholder: "123456789",
+            },
+          },
+          {
+            name: t.telegramCheck,
+            desc: t.telegramCheckDesc,
+            action: () => {
+              void this.runTelegramCheckWithNotice();
+            },
+          },
+        ],
+      },
+      {
+        type: "group",
+        heading: t.syncServer,
+        items: [
+          {
+            name: t.serverUrl,
+            desc: t.serverUrlDesc,
+            render: (setting) => {
+              this.renderServerUrlControl(setting.settingEl);
+            },
+          },
+          {
+            name: t.connectionCheck,
+            desc: t.connectionCheckDesc,
+            action: () => {
+              void this.runServerConnectionCheckWithNotice();
+            },
+          },
+        ],
+      },
+      {
+        type: "group",
+        heading: t.obsidianLinks,
+        items: [
+          {
+            name: t.templateFile,
+            desc: t.templateFileDesc,
+            control: {
+              type: "file",
+              key: "templateFile",
+              placeholder: DEFAULT_TEMPLATE_FILE,
+              filter: (file) => file.extension === "md",
+            },
+          },
+          {
+            name: t.targetFile,
+            desc: t.targetFileDesc,
+            control: {
+              type: "file",
+              key: "targetFile",
+              placeholder: DEFAULT_TARGET_FILE,
+              filter: (file) => file.extension === "md",
+            },
+          },
+          {
+            name: t.attachmentsFolder,
+            desc: t.attachmentsFolderDesc,
+            control: {
+              type: "folder",
+              key: "attachmentsFolder",
+              placeholder: DEFAULT_SETTINGS.attachmentsFolder,
+            },
+          },
+        ],
+      },
+      {
+        type: "group",
+        heading: t.proxyApi,
+        items: [
+          {
+            name: t.transcribeAudio,
+            desc: t.transcribeAudioDesc.replace("{model}", TRANSCRIPTION_MODEL),
+            control: {
+              type: "toggle",
+              key: "transcribeAudio",
+            },
+          },
+          {
+            name: t.balance,
+            desc: t.balanceDesc,
+            visible: () => this.plugin.settings.transcribeAudio,
+            action: () => {
+              void this.refreshProxyApiBalanceFromAction();
+            },
+          },
+          {
+            name: t.apiKey,
+            desc: t.apiKeyDesc,
+            visible: () => this.plugin.settings.transcribeAudio,
+            render: (setting) => {
+              this.renderProxyApiKeyControl(setting.settingEl);
+            },
+          },
+          {
+            name: t.postProcess,
+            desc: t.postProcessDesc,
+            visible: () => this.plugin.settings.transcribeAudio,
+            control: {
+              type: "toggle",
+              key: "postProcessTranscription",
+            },
+          },
+          {
+            name: t.postProcessModel,
+            visible: () =>
+              this.plugin.settings.transcribeAudio &&
+              this.plugin.settings.postProcessTranscription,
+            control: {
+              type: "dropdown",
+              key: "postProcessModel",
+              options: Object.fromEntries(
+                POST_PROCESS_MODELS.map((model) => [model.id, model.label]),
+              ),
+            },
+          },
+          {
+            name: t.postProcessPrompt,
+            desc: t.postProcessPromptDesc,
+            visible: () =>
+              this.plugin.settings.transcribeAudio &&
+              this.plugin.settings.postProcessTranscription,
+            control: {
+              type: "textarea",
+              key: "postProcessPrompt",
+              rows: 8,
+              placeholder: DEFAULT_POST_PROCESS_PROMPT,
+            },
+          },
+        ],
+      },
+    ];
+  }
+
+  async setControlValue(key: string, value: unknown): Promise<void> {
+    const settings = this.plugin.settings;
+
+    switch (key) {
+      case "postProcessModel":
+        settings.postProcessModel = resolvePostProcessModel(String(value));
+        break;
+      case "templateFile":
+        settings.templateFile = String(value).trim() || DEFAULT_TEMPLATE_FILE;
+        break;
+      case "targetFile":
+        settings.targetFile = String(value).trim() || DEFAULT_TARGET_FILE;
+        break;
+      case "attachmentsFolder":
+        settings.attachmentsFolder =
+          String(value).trim() || DEFAULT_SETTINGS.attachmentsFolder;
+        break;
+      case "postProcessPrompt":
+        settings.postProcessPrompt =
+          String(value).trim() || DEFAULT_POST_PROCESS_PROMPT;
+        break;
+      default:
+        (settings as unknown as Record<string, unknown>)[key] = value;
+    }
+
+    await this.plugin.saveSettings();
+
+    if (key === "transcribeAudio" || key === "postProcessTranscription") {
+      this.update();
+    }
+  }
+
+  getControlValue(key: string): unknown {
+    if (key === "postProcessModel") {
+      return resolvePostProcessModel(this.plugin.settings.postProcessModel);
+    }
+    return (this.plugin.settings as unknown as Record<string, unknown>)[key];
+  }
+
+  private renderSettings(containerEl: HTMLElement = this.containerEl): void {
     containerEl.empty();
     const t = this.t();
     const useDefaults = this.plugin.settings.useDefaultServer;
 
     this.renderAboutSection(containerEl);
 
-    new Setting(containerEl)
-      .setName(t.architecture)
-      .setDesc(t.architectureDesc)
-      .addDropdown((dropdown) => {
-        dropdown.addOption("direct", t.architectureDirect);
-        dropdown.addOption("via-server", t.architectureViaServer);
-        dropdown.setValue("via-server").onChange((value) => {
-          if (value === "via-server") {
-            return;
-          }
-          dropdown.setValue("via-server");
-          new Notice(t.directNotImplemented, 6000);
-        });
-      });
+    this.renderArchitectureControls(containerEl);
 
-    new Setting(containerEl)
-      .setName(t.viaServerMode)
-      .setDesc(t.viaServerModeDesc)
-      .addDropdown((dropdown) => {
-        dropdown.addOption("default", t.viaServerUseDefaults);
-        dropdown.addOption("custom", t.viaServerConfigure);
-        dropdown
-          .setValue(this.plugin.settings.useDefaultServer ? "default" : "custom")
-          .onChange(async (value) => {
-            this.plugin.settings.useDefaultServer = value === "default";
-            if (this.plugin.settings.useDefaultServer) {
-              this.plugin.settings.serverUrl = "";
-            }
-            await this.plugin.saveSettings();
-            this.renderSettings();
-          });
-      });
+    this.renderViaServerModeControl(containerEl);
 
     this.renderTelegramSection(containerEl, {
       lockedDefault: useDefaults,
@@ -150,15 +362,55 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
     this.renderProxyApiSection(containerEl);
   }
 
-  private renderTelegramSection(
-    containerEl: HTMLElement,
-    options?: { lockedDefault?: boolean },
-  ): void {
+  private renderArchitectureControls(containerEl: HTMLElement): void {
     const t = this.t();
-    const lockedDefault = options?.lockedDefault === true;
-    const defaultBotUsername = "obsidian_sync_amvera_r_bot";
 
-    this.addSectionHeading(containerEl, t.telegram);
+    new Setting(containerEl)
+      .setName(t.architecture)
+      .setDesc(t.architectureDesc)
+      .addDropdown((dropdown) => {
+        dropdown.addOption("direct", t.architectureDirect);
+        dropdown.addOption("via-server", t.architectureViaServer);
+        dropdown.setValue("via-server").onChange((value) => {
+          if (value === "via-server") {
+            return;
+          }
+          dropdown.setValue("via-server");
+          new Notice(t.directNotImplemented, 6000);
+        });
+      });
+  }
+
+  private renderViaServerModeControl(containerEl: HTMLElement): void {
+    const t = this.t();
+
+    new Setting(containerEl)
+      .setName(t.viaServerMode)
+      .setDesc(t.viaServerModeDesc)
+      .addDropdown((dropdown) => {
+        dropdown.addOption("default", t.viaServerUseDefaults);
+        dropdown.addOption("custom", t.viaServerConfigure);
+        dropdown
+          .setValue(this.plugin.settings.useDefaultServer ? "default" : "custom")
+          .onChange(async (value) => {
+            this.plugin.settings.useDefaultServer = value === "default";
+            if (this.plugin.settings.useDefaultServer) {
+              this.plugin.settings.serverUrl = "";
+            }
+            await this.plugin.saveSettings();
+            if (isObsidianAtLeast("1.13.0")) {
+              this.update();
+              return;
+            }
+            this.renderSettings(containerEl);
+          });
+      });
+  }
+
+  private renderTelegramTokenControl(containerEl: HTMLElement): void {
+    const t = this.t();
+    const lockedDefault = this.plugin.settings.useDefaultServer;
+    const defaultBotUsername = "obsidian_sync_amvera_r_bot";
 
     const tokenSetting = new Setting(containerEl)
       .setName(t.telegramBotToken)
@@ -197,7 +449,111 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
     } else {
       tokenSetting.descEl.createDiv({ text: t.telegramBotTokenDesc });
     }
+  }
 
+  private renderServerUrlControl(containerEl: HTMLElement): void {
+    const t = this.t();
+    const useDefaults = this.plugin.settings.useDefaultServer;
+    const serverRepoUrl =
+      "https://github.com/vicstu/server_obsidian_telegram_sync_amvera_r";
+
+    const serverUrlSetting = new Setting(containerEl)
+      .setName(t.serverUrl)
+      .addText((text) =>
+        text
+          .setPlaceholder("https://your-server.example.com")
+          .setValue(
+            useDefaults
+              ? DEFAULT_SERVER_API_TOKEN
+              : this.plugin.settings.serverUrl,
+          )
+          .setDisabled(useDefaults)
+          .onChange(async (value) => {
+            if (useDefaults) {
+              return;
+            }
+            this.plugin.settings.serverUrl = value.trim();
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    serverUrlSetting.descEl.empty();
+    serverUrlSetting.descEl.createDiv({ text: t.serverUrlDesc });
+    if (!useDefaults) {
+      const repoLine = serverUrlSetting.descEl.createDiv({
+        cls: "telegram-sync-setting-desc-extra",
+      });
+      repoLine.createSpan({ text: t.syncServerRepoNote });
+      repoLine.createEl("a", {
+        text: "GitHub",
+        href: serverRepoUrl,
+        attr: {
+          target: "_blank",
+          rel: "noopener",
+        },
+      });
+    }
+  }
+
+  private renderProxyApiKeyControl(containerEl: HTMLElement): void {
+    new Setting(containerEl).addText((text) => {
+      text
+        .setPlaceholder("sk-...")
+        .setValue(this.plugin.settings.proxyApiKey)
+        .onChange(async (value) => {
+          this.plugin.settings.proxyApiKey = value.trim();
+          await this.plugin.saveSettings();
+        });
+      text.inputEl.type = "password";
+      text.inputEl.autocomplete = "off";
+    });
+  }
+
+  private async runTelegramCheckWithNotice(): Promise<void> {
+    const result = await this.runTelegramAccessCheck();
+    new Notice(result.message, 7000);
+  }
+
+  private async runServerConnectionCheckWithNotice(): Promise<void> {
+    const { message, ok } = await this.runServerConnectionCheck();
+    new Notice(message, 8000);
+    if (!ok) {
+      return;
+    }
+  }
+
+  private async refreshProxyApiBalanceFromAction(): Promise<void> {
+    const t = this.t();
+
+    if (!this.plugin.settings.proxyApiKey.trim()) {
+      new Notice(t.apiKeyDesc, 8000);
+      return;
+    }
+
+    try {
+      const result = await fetchProxyApiBalance(this.plugin.settings.proxyApiKey);
+      if (!result.ok || !result.balance) {
+        new Notice(result.error ?? t.balanceFailed, 8000);
+        return;
+      }
+
+      const formatted = formatProxyApiBalance(result.balance);
+      new Notice(`ProxyAPI ${t.balance.toLowerCase()}: ${formatted}`, 5000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      new Notice(`${t.balanceCheckFailed}: ${message}`, 8000);
+    }
+  }
+
+  private renderTelegramSection(
+    containerEl: HTMLElement,
+    options?: { lockedDefault?: boolean },
+  ): void {
+    const t = this.t();
+    const lockedDefault = options?.lockedDefault === true;
+
+    this.addSectionHeading(containerEl, t.telegram);
+    this.renderTelegramTokenControl(containerEl);
     new Setting(containerEl)
       .setName(t.telegramUserId)
       .setDesc(
@@ -325,48 +681,9 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
 
   private renderViaServerSection(containerEl: HTMLElement): void {
     const t = this.t();
-    const useDefaults = this.plugin.settings.useDefaultServer;
-    const serverRepoUrl =
-      "https://github.com/vicstu/server_obsidian_telegram_sync_amvera_r";
 
     this.addSectionHeading(containerEl, t.syncServer);
-
-    const serverUrlSetting = new Setting(containerEl)
-      .setName(t.serverUrl)
-      .addText((text) =>
-        text
-          .setPlaceholder("https://your-server.example.com")
-          .setValue(
-            useDefaults
-              ? DEFAULT_SERVER_API_TOKEN
-              : this.plugin.settings.serverUrl,
-          )
-          .setDisabled(useDefaults)
-          .onChange(async (value) => {
-            if (useDefaults) {
-              return;
-            }
-            this.plugin.settings.serverUrl = value.trim();
-            await this.plugin.saveSettings();
-          }),
-      );
-
-    serverUrlSetting.descEl.empty();
-    serverUrlSetting.descEl.createDiv({ text: t.serverUrlDesc });
-    if (!useDefaults) {
-      const repoLine = serverUrlSetting.descEl.createDiv({
-        cls: "telegram-sync-setting-desc-extra",
-      });
-      repoLine.createSpan({ text: t.syncServerRepoNote });
-      repoLine.createEl("a", {
-        text: "GitHub",
-        href: serverRepoUrl,
-        attr: {
-          target: "_blank",
-          rel: "noopener",
-        },
-      });
-    }
+    this.renderServerUrlControl(containerEl);
 
     let serverStatusEl: HTMLElement;
 
@@ -493,7 +810,11 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.transcribeAudio = value;
             await this.plugin.saveSettings();
-            this.renderSettings();
+            if (isObsidianAtLeast("1.13.0")) {
+              this.update();
+              return;
+            }
+            this.renderSettings(containerEl);
           }),
       );
 
@@ -536,7 +857,11 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.postProcessTranscription = value;
             await this.plugin.saveSettings();
-            this.renderSettings();
+            if (isObsidianAtLeast("1.13.0")) {
+              this.update();
+              return;
+            }
+            this.renderSettings(containerEl);
           }),
       );
 
