@@ -95,14 +95,14 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
             name: t.architecture,
             desc: t.architectureDesc,
             render: (setting) => {
-              this.renderArchitectureControls(setting.settingEl);
+              this.attachArchitectureDropdown(setting);
             },
           },
           {
             name: t.viaServerMode,
             desc: t.viaServerModeDesc,
             render: (setting) => {
-              this.renderViaServerModeControl(setting.settingEl);
+              this.attachViaServerModeDropdown(setting);
             },
           },
         ],
@@ -113,8 +113,9 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
         items: [
           {
             name: t.telegramBotToken,
+            desc: this.buildTelegramBotTokenDesc(),
             render: (setting) => {
-              this.renderTelegramTokenControl(setting.settingEl);
+              this.attachTelegramTokenInput(setting);
             },
           },
           {
@@ -131,8 +132,8 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
           {
             name: t.telegramCheck,
             desc: t.telegramCheckDesc,
-            action: () => {
-              void this.runTelegramCheckWithNotice();
+            render: (setting) => {
+              this.attachTelegramCheckButton(setting);
             },
           },
         ],
@@ -143,16 +144,16 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
         items: [
           {
             name: t.serverUrl,
-            desc: t.serverUrlDesc,
+            desc: this.buildServerUrlDesc(),
             render: (setting) => {
-              this.renderServerUrlControl(setting.settingEl);
+              this.attachServerUrlInput(setting);
             },
           },
           {
             name: t.connectionCheck,
             desc: t.connectionCheckDesc,
-            action: () => {
-              void this.runServerConnectionCheckWithNotice();
+            render: (setting) => {
+              this.attachServerConnectionCheckButton(setting);
             },
           },
         ],
@@ -197,6 +198,11 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
         heading: t.proxyApi,
         items: [
           {
+            name: t.proxyApi,
+            desc: t.proxyApiDesc,
+            searchable: false,
+          },
+          {
             name: t.transcribeAudio,
             desc: t.transcribeAudioDesc.replace("{model}", TRANSCRIPTION_MODEL),
             control: {
@@ -208,16 +214,18 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
             name: t.balance,
             desc: t.balanceDesc,
             visible: () => this.plugin.settings.transcribeAudio,
-            action: () => {
-              void this.refreshProxyApiBalanceFromAction();
+            render: (setting) => {
+              this.attachBalanceRefreshButton(setting);
             },
           },
           {
             name: t.apiKey,
             desc: t.apiKeyDesc,
             visible: () => this.plugin.settings.transcribeAudio,
-            render: (setting) => {
-              this.renderProxyApiKeyControl(setting.settingEl);
+            control: {
+              type: "text",
+              key: "proxyApiKey",
+              placeholder: "sk-...",
             },
           },
           {
@@ -231,6 +239,7 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
           },
           {
             name: t.postProcessModel,
+            desc: this.buildPostProcessModelDesc(),
             visible: () =>
               this.plugin.settings.transcribeAudio &&
               this.plugin.settings.postProcessTranscription,
@@ -248,11 +257,17 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
             visible: () =>
               this.plugin.settings.transcribeAudio &&
               this.plugin.settings.postProcessTranscription,
-            control: {
-              type: "textarea",
-              key: "postProcessPrompt",
-              rows: 8,
-              placeholder: DEFAULT_POST_PROCESS_PROMPT,
+            render: (setting) => {
+              this.attachFullWidthTextarea(setting, {
+                value: this.plugin.settings.postProcessPrompt,
+                placeholder: DEFAULT_POST_PROCESS_PROMPT,
+                rows: 8,
+                onChange: async (value) => {
+                  this.plugin.settings.postProcessPrompt =
+                    value.trim() || DEFAULT_POST_PROCESS_PROMPT;
+                  await this.plugin.saveSettings();
+                },
+              });
             },
           },
         ],
@@ -276,10 +291,6 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
       case "attachmentsFolder":
         settings.attachmentsFolder =
           String(value).trim() || DEFAULT_SETTINGS.attachmentsFolder;
-        break;
-      case "postProcessPrompt":
-        settings.postProcessPrompt =
-          String(value).trim() || DEFAULT_POST_PROCESS_PROMPT;
         break;
       default:
         (settings as unknown as Record<string, unknown>)[key] = value;
@@ -362,83 +373,16 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
     this.renderProxyApiSection(containerEl);
   }
 
-  private renderArchitectureControls(containerEl: HTMLElement): void {
+  private buildTelegramBotTokenDesc(): string | DocumentFragment {
     const t = this.t();
+    if (!this.plugin.settings.useDefaultServer) {
+      return t.telegramBotTokenDesc;
+    }
 
-    new Setting(containerEl)
-      .setName(t.architecture)
-      .setDesc(t.architectureDesc)
-      .addDropdown((dropdown) => {
-        dropdown.addOption("direct", t.architectureDirect);
-        dropdown.addOption("via-server", t.architectureViaServer);
-        dropdown.setValue("via-server").onChange((value) => {
-          if (value === "via-server") {
-            return;
-          }
-          dropdown.setValue("via-server");
-          new Notice(t.directNotImplemented, 6000);
-        });
-      });
-  }
-
-  private renderViaServerModeControl(containerEl: HTMLElement): void {
-    const t = this.t();
-
-    new Setting(containerEl)
-      .setName(t.viaServerMode)
-      .setDesc(t.viaServerModeDesc)
-      .addDropdown((dropdown) => {
-        dropdown.addOption("default", t.viaServerUseDefaults);
-        dropdown.addOption("custom", t.viaServerConfigure);
-        dropdown
-          .setValue(this.plugin.settings.useDefaultServer ? "default" : "custom")
-          .onChange(async (value) => {
-            this.plugin.settings.useDefaultServer = value === "default";
-            if (this.plugin.settings.useDefaultServer) {
-              this.plugin.settings.serverUrl = "";
-            }
-            await this.plugin.saveSettings();
-            if (isObsidianAtLeast("1.13.0")) {
-              this.update();
-              return;
-            }
-            this.renderSettings(containerEl);
-          });
-      });
-  }
-
-  private renderTelegramTokenControl(containerEl: HTMLElement): void {
-    const t = this.t();
-    const lockedDefault = this.plugin.settings.useDefaultServer;
     const defaultBotUsername = "obsidian_sync_amvera_r_bot";
-
-    const tokenSetting = new Setting(containerEl)
-      .setName(t.telegramBotToken)
-      .addText((text) => {
-        text
-          .setPlaceholder("123456:ABC-DEF...")
-          .setValue(
-            lockedDefault
-              ? DEFAULT_SERVER_API_TOKEN
-              : this.plugin.settings.telegramBotToken,
-          )
-          .setDisabled(lockedDefault)
-          .onChange(async (value) => {
-            if (lockedDefault) {
-              return;
-            }
-            this.plugin.settings.telegramBotToken = value.trim();
-            await this.plugin.saveSettings();
-          });
-        text.inputEl.type = lockedDefault ? "text" : "password";
-        text.inputEl.autocomplete = "off";
-      });
-
-    tokenSetting.descEl.empty();
-    if (lockedDefault) {
-      const botLine = tokenSetting.descEl.createDiv();
-      botLine.createSpan({ text: `${t.defaultBotConnectNote} ` });
-      botLine.createEl("a", {
+    return createFragment((frag: DocumentFragment) => {
+      frag.createSpan({ text: `${t.defaultBotConnectNote} ` });
+      frag.createEl("a", {
         text: `@${defaultBotUsername}`,
         href: `https://t.me/${defaultBotUsername}`,
         attr: {
@@ -446,43 +390,21 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
           rel: "noopener",
         },
       });
-    } else {
-      tokenSetting.descEl.createDiv({ text: t.telegramBotTokenDesc });
-    }
+    });
   }
 
-  private renderServerUrlControl(containerEl: HTMLElement): void {
+  private buildServerUrlDesc(): string | DocumentFragment {
     const t = this.t();
-    const useDefaults = this.plugin.settings.useDefaultServer;
+    if (this.plugin.settings.useDefaultServer) {
+      return t.serverUrlDesc;
+    }
+
     const serverRepoUrl =
       "https://github.com/vicstu/server_obsidian_telegram_sync_amvera_r";
 
-    const serverUrlSetting = new Setting(containerEl)
-      .setName(t.serverUrl)
-      .addText((text) =>
-        text
-          .setPlaceholder("https://your-server.example.com")
-          .setValue(
-            useDefaults
-              ? DEFAULT_SERVER_API_TOKEN
-              : this.plugin.settings.serverUrl,
-          )
-          .setDisabled(useDefaults)
-          .onChange(async (value) => {
-            if (useDefaults) {
-              return;
-            }
-            this.plugin.settings.serverUrl = value.trim();
-            await this.plugin.saveSettings();
-          }),
-      );
-
-    serverUrlSetting.descEl.empty();
-    serverUrlSetting.descEl.createDiv({ text: t.serverUrlDesc });
-    if (!useDefaults) {
-      const repoLine = serverUrlSetting.descEl.createDiv({
-        cls: "telegram-sync-setting-desc-extra",
-      });
+    return createFragment((frag: DocumentFragment) => {
+      frag.createDiv({ text: t.serverUrlDesc });
+      const repoLine = frag.createDiv({ cls: "telegram-sync-setting-desc-extra" });
       repoLine.createSpan({ text: t.syncServerRepoNote });
       repoLine.createEl("a", {
         text: "GitHub",
@@ -492,57 +414,150 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
           rel: "noopener",
         },
       });
-    }
+    });
   }
 
-  private renderProxyApiKeyControl(containerEl: HTMLElement): void {
-    new Setting(containerEl).addText((text) => {
-      text
-        .setPlaceholder("sk-...")
-        .setValue(this.plugin.settings.proxyApiKey)
+  private buildPostProcessModelDesc(): DocumentFragment {
+    const t = this.t();
+    return createFragment((frag: DocumentFragment) => {
+      frag.createEl("a", {
+        text: t.tokenPricing,
+        href: "https://proxyapi.ru/pricing/list",
+        attr: {
+          target: "_blank",
+          rel: "noopener",
+          title: `${t.tokenPricing} — https://proxyapi.ru/pricing/list`,
+        },
+      });
+      frag.createSpan({ text: t.tokenPricingSuffix });
+    });
+  }
+
+  private renderArchitectureControls(containerEl: HTMLElement): void {
+    const t = this.t();
+    this.attachArchitectureDropdown(
+      new Setting(containerEl).setName(t.architecture).setDesc(t.architectureDesc),
+    );
+  }
+
+  private attachArchitectureDropdown(setting: Setting): void {
+    const t = this.t();
+
+    setting.addDropdown((dropdown) => {
+      dropdown.addOption("direct", t.architectureDirect);
+      dropdown.addOption("via-server", t.architectureViaServer);
+      dropdown.setValue("via-server").onChange((value) => {
+        if (value === "via-server") {
+          return;
+        }
+        dropdown.setValue("via-server");
+        new Notice(t.directNotImplemented, 6000);
+      });
+    });
+  }
+
+  private renderViaServerModeControl(containerEl: HTMLElement): void {
+    const t = this.t();
+    this.attachViaServerModeDropdown(
+      new Setting(containerEl).setName(t.viaServerMode).setDesc(t.viaServerModeDesc),
+    );
+  }
+
+  private attachViaServerModeDropdown(setting: Setting): void {
+    setting.addDropdown((dropdown) => {
+      const t = this.t();
+      dropdown.addOption("default", t.viaServerUseDefaults);
+      dropdown.addOption("custom", t.viaServerConfigure);
+      dropdown
+        .setValue(this.plugin.settings.useDefaultServer ? "default" : "custom")
         .onChange(async (value) => {
-          this.plugin.settings.proxyApiKey = value.trim();
+          this.plugin.settings.useDefaultServer = value === "default";
+          if (this.plugin.settings.useDefaultServer) {
+            this.plugin.settings.serverUrl = "";
+          }
+          await this.plugin.saveSettings();
+          if (isObsidianAtLeast("1.13.0")) {
+            this.update();
+            return;
+          }
+          this.renderSettings(this.containerEl);
+        });
+    });
+  }
+
+  private renderTelegramTokenControl(containerEl: HTMLElement): void {
+    const t = this.t();
+    this.attachTelegramTokenInput(
+      new Setting(containerEl).setName(t.telegramBotToken).setDesc(this.buildTelegramBotTokenDesc()),
+    );
+  }
+
+  private attachTelegramTokenInput(setting: Setting): void {
+    const lockedDefault = this.plugin.settings.useDefaultServer;
+
+    setting.addText((text) => {
+      text
+        .setPlaceholder("123456:ABC-DEF...")
+        .setValue(
+          lockedDefault
+            ? DEFAULT_SERVER_API_TOKEN
+            : this.plugin.settings.telegramBotToken,
+        )
+        .setDisabled(lockedDefault)
+        .onChange(async (value) => {
+          if (lockedDefault) {
+            return;
+          }
+          this.plugin.settings.telegramBotToken = value.trim();
           await this.plugin.saveSettings();
         });
-      text.inputEl.type = "password";
+      text.inputEl.type = lockedDefault ? "text" : "password";
       text.inputEl.autocomplete = "off";
     });
   }
 
-  private async runTelegramCheckWithNotice(): Promise<void> {
-    const result = await this.runTelegramAccessCheck();
-    new Notice(result.message, 7000);
-  }
-
-  private async runServerConnectionCheckWithNotice(): Promise<void> {
-    const { message, ok } = await this.runServerConnectionCheck();
-    new Notice(message, 8000);
-    if (!ok) {
-      return;
-    }
-  }
-
-  private async refreshProxyApiBalanceFromAction(): Promise<void> {
+  private renderServerUrlControl(containerEl: HTMLElement): void {
     const t = this.t();
+    this.attachServerUrlInput(
+      new Setting(containerEl).setName(t.serverUrl).setDesc(this.buildServerUrlDesc()),
+    );
+  }
 
-    if (!this.plugin.settings.proxyApiKey.trim()) {
-      new Notice(t.apiKeyDesc, 8000);
-      return;
-    }
+  private attachServerUrlInput(setting: Setting): void {
+    const useDefaults = this.plugin.settings.useDefaultServer;
 
-    try {
-      const result = await fetchProxyApiBalance(this.plugin.settings.proxyApiKey);
-      if (!result.ok || !result.balance) {
-        new Notice(result.error ?? t.balanceFailed, 8000);
-        return;
-      }
+    setting.addText((text) =>
+      text
+        .setPlaceholder("https://your-server.example.com")
+        .setValue(
+          useDefaults ? DEFAULT_SERVER_API_TOKEN : this.plugin.settings.serverUrl,
+        )
+        .setDisabled(useDefaults)
+        .onChange(async (value) => {
+          if (useDefaults) {
+            return;
+          }
+          this.plugin.settings.serverUrl = value.trim();
+          await this.plugin.saveSettings();
+        }),
+    );
+  }
 
-      const formatted = formatProxyApiBalance(result.balance);
-      new Notice(`ProxyAPI ${t.balance.toLowerCase()}: ${formatted}`, 5000);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      new Notice(`${t.balanceCheckFailed}: ${message}`, 8000);
-    }
+  private renderProxyApiKeyControl(containerEl: HTMLElement): void {
+    const t = this.t();
+    new Setting(containerEl)
+      .setName(t.apiKey)
+      .setDesc(t.apiKeyDesc)
+      .addText((text) => {
+        text
+          .setPlaceholder("sk-...")
+          .setValue(this.plugin.settings.proxyApiKey)
+          .onChange(async (value) => {
+            this.plugin.settings.proxyApiKey = value.trim();
+            await this.plugin.saveSettings();
+          });
+        text.inputEl.autocomplete = "off";
+      });
   }
 
   private renderTelegramSection(
@@ -589,33 +604,84 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
     });
   }
 
-  private renderTelegramCheck(containerEl: HTMLElement): void {
+  private attachTelegramCheckButton(setting: Setting): void {
     const t = this.t();
+    setting.setClass("telegram-sync-check-setting");
     let statusEl: HTMLElement;
 
-    new Setting(containerEl)
-      .setName(t.telegramCheck)
-      .setDesc(t.telegramCheckDesc)
-      .addButton((button) => {
-        button.setButtonText(t.check).onClick(async () => {
-          button.setDisabled(true);
-          statusEl.setText("");
-          statusEl.removeClass("is-ok");
-          statusEl.removeClass("is-warn");
-          statusEl.removeClass("is-error");
+    setting.addButton((button) => {
+      button.setButtonText(t.check).onClick(async () => {
+        button.setDisabled(true);
+        statusEl.setText("");
+        statusEl.removeClass("is-ok");
+        statusEl.removeClass("is-warn");
+        statusEl.removeClass("is-error");
 
-          try {
-            const result = await this.runTelegramAccessCheck();
-            statusEl.setText(result.message);
-            statusEl.addClass(`is-${result.level}`);
-            new Notice(result.message, 7000);
-          } finally {
-            button.setDisabled(false);
-          }
-        });
+        try {
+          const result = await this.runTelegramAccessCheck();
+          statusEl.setText(result.message);
+          statusEl.addClass(`is-${result.level}`);
+          new Notice(result.message, 7000);
+        } finally {
+          button.setDisabled(false);
+        }
       });
+    });
 
-    statusEl = containerEl.createDiv({ cls: "telegram-sync-check-status" });
+    statusEl = this.createCheckStatusElement(setting);
+  }
+
+  private attachServerConnectionCheckButton(setting: Setting): void {
+    const t = this.t();
+    setting.setClass("telegram-sync-check-setting");
+    let statusEl: HTMLElement;
+
+    setting.addButton((button) => {
+      button.setButtonText(t.check).onClick(async () => {
+        button.setDisabled(true);
+        statusEl.setText("");
+        statusEl.removeClass("is-ok");
+        statusEl.removeClass("is-error");
+
+        try {
+          const { message, ok } = await this.runServerConnectionCheck();
+          statusEl.setText(message);
+          statusEl.addClass(ok ? "is-ok" : "is-error");
+          new Notice(message, 8000);
+        } finally {
+          button.setDisabled(false);
+        }
+      });
+    });
+
+    statusEl = this.createCheckStatusElement(setting);
+  }
+
+  private createCheckStatusElement(setting: Setting): HTMLElement {
+    return setting.settingEl.createDiv({
+      cls: "telegram-sync-check-status",
+    });
+  }
+
+  private attachBalanceRefreshButton(setting: Setting): void {
+    const t = this.t();
+
+    setting.addButton((button) => {
+      button.setButtonText(t.refresh).onClick(async () => {
+        await this.refreshProxyApiBalance(setting, button, true);
+      });
+    });
+
+    if (this.plugin.settings.proxyApiKey.trim()) {
+      void this.refreshProxyApiBalance(setting, undefined, false);
+    }
+  }
+
+  private renderTelegramCheck(containerEl: HTMLElement): void {
+    const t = this.t();
+    this.attachTelegramCheckButton(
+      new Setting(containerEl).setName(t.telegramCheck).setDesc(t.telegramCheckDesc),
+    );
   }
 
   private async runTelegramAccessCheck(): Promise<{
@@ -685,30 +751,11 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
     this.addSectionHeading(containerEl, t.syncServer);
     this.renderServerUrlControl(containerEl);
 
-    let serverStatusEl: HTMLElement;
-
-    new Setting(containerEl)
-      .setName(t.connectionCheck)
-      .setDesc(t.connectionCheckDesc)
-      .addButton((button) => {
-        button.setButtonText(t.check).onClick(async () => {
-          button.setDisabled(true);
-          serverStatusEl.setText("");
-          serverStatusEl.removeClass("is-ok");
-          serverStatusEl.removeClass("is-error");
-
-          try {
-            const { message, ok } = await this.runServerConnectionCheck();
-            serverStatusEl.setText(message);
-            serverStatusEl.addClass(ok ? "is-ok" : "is-error");
-            new Notice(message, 8000);
-          } finally {
-            button.setDisabled(false);
-          }
-        });
-      });
-
-    serverStatusEl = containerEl.createDiv({ cls: "telegram-sync-check-status" });
+    this.attachServerConnectionCheckButton(
+      new Setting(containerEl)
+        .setName(t.connectionCheck)
+        .setDesc(t.connectionCheckDesc),
+    );
   }
 
   private async runServerConnectionCheck(): Promise<{
@@ -762,6 +809,26 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
     }
   }
 
+  private attachFullWidthTextarea(
+    setting: Setting,
+    options: {
+      value: string;
+      placeholder: string;
+      rows?: number;
+      onChange: (value: string) => Promise<void>;
+    },
+  ): void {
+    setting.setClass("telegram-sync-fullwidth-prompt");
+
+    const textarea = setting.descEl.createEl("textarea");
+    textarea.value = options.value;
+    textarea.placeholder = options.placeholder;
+    textarea.rows = options.rows ?? 8;
+    textarea.addEventListener("input", () => {
+      void options.onChange(textarea.value);
+    });
+  }
+
   private addFullWidthPromptSetting(
     containerEl: HTMLElement,
     options: {
@@ -773,18 +840,15 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
       onChange: (value: string) => Promise<void>;
     },
   ): void {
-    const setting = new Setting(containerEl)
-      .setName(options.name)
-      .setDesc(options.desc)
-      .setClass("telegram-sync-fullwidth-prompt");
-
-    const textarea = setting.descEl.createEl("textarea");
-    textarea.value = options.value;
-    textarea.placeholder = options.placeholder;
-    textarea.rows = options.rows ?? 4;
-    textarea.addEventListener("input", () => {
-      void options.onChange(textarea.value);
-    });
+    this.attachFullWidthTextarea(
+      new Setting(containerEl).setName(options.name).setDesc(options.desc),
+      {
+        value: options.value,
+        placeholder: options.placeholder,
+        rows: options.rows,
+        onChange: options.onChange,
+      },
+    );
   }
 
   private renderProxyApiSection(containerEl: HTMLElement): void {
@@ -835,18 +899,7 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
       void this.refreshProxyApiBalance(balanceSetting, undefined, false);
     }
 
-    new Setting(containerEl)
-      .setName(t.apiKey)
-      .setDesc(t.apiKeyDesc)
-      .addText((text) => {
-        text
-          .setPlaceholder("sk-...")
-          .setValue(this.plugin.settings.proxyApiKey)
-          .onChange(async (value) => {
-            this.plugin.settings.proxyApiKey = value.trim();
-            await this.plugin.saveSettings();
-          });
-      });
+    this.renderProxyApiKeyControl(containerEl);
 
     new Setting(containerEl)
       .setName(t.postProcess)
