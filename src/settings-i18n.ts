@@ -67,9 +67,9 @@ type SettingsStrings = {
   attachmentsFolder: string;
   attachmentsFolderDesc: string;
   proxyApi: string;
-  proxyApiDesc: string;
+  proxyApiDescPrefix: string;
+  proxyApiDescSuffix: string;
   transcribeAudio: string;
-  transcribeAudioDesc: string;
   apiKey: string;
   apiKeyDesc: string;
   balance: string;
@@ -164,11 +164,9 @@ const EN: SettingsStrings = {
   attachmentsFolder: "Attachments Folder",
   attachmentsFolderDesc: "Folder where media files will be saved",
   proxyApi: "ProxyAPI",
-  proxyApiDesc:
-    "To transcribe audio to text, register at proxyapi.ru, create an API key, and enable it below.",
+  proxyApiDescPrefix: "To transcribe audio to text, register at ",
+  proxyApiDescSuffix: ", create an API key, and enable it below.",
   transcribeAudio: "Transcribe audio",
-  transcribeAudioDesc:
-    "During sync, send voice/audio attachments to ProxyAPI ({model}) for speech-to-text, in parallel with saving the file to the vault. The result is inserted below the audio embed via {{transcription}}. Audio file size must not exceed 25 MB.",
   apiKey: "API key",
   apiKeyDesc:
     'Your ProxyAPI key. Enable "Balance request" for this key in the ProxyAPI dashboard.',
@@ -266,11 +264,9 @@ const RU: SettingsStrings = {
   attachmentsFolder: "Папка вложений",
   attachmentsFolderDesc: "Папка, куда сохраняются медиафайлы",
   proxyApi: "ProxyAPI",
-  proxyApiDesc:
-    "Для транскрибации аудио в текст зарегистрируйтесь на proxyapi.ru, создайте API-ключ и включите опцию ниже.",
+  proxyApiDescPrefix: "Для транскрибации аудио в текст зарегистрируйтесь на ",
+  proxyApiDescSuffix: ", создайте API-ключ и включите опцию ниже.",
   transcribeAudio: "Транскрибация аудио",
-  transcribeAudioDesc:
-    "При синхронизации голосовые/аудио вложения отправляются в ProxyAPI ({model}) для распознавания речи параллельно с сохранением в vault. Результат вставляется под аудио через {{transcription}}. Размер аудиофайла не должен превышать 25 МБ.",
   apiKey: "API-ключ",
   apiKeyDesc:
     "Ваш ключ ProxyAPI. Включите «Запрос баланса» для этого ключа в личном кабинете ProxyAPI.",

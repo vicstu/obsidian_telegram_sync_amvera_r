@@ -136,6 +136,16 @@
   white-space: pre-wrap;
 }
 
+.telegram-sync-about-setting .setting-item-description {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.45;
+}
+
+.telegram-sync-about-setting .setting-item-control {
+  display: none;
+}
+
 .telegram-sync-about {
   margin: 0 0 1.25em;
   color: var(--text-muted);
@@ -164,19 +174,24 @@
 }
 
 .telegram-sync-check-setting {
-  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.telegram-sync-check-setting .setting-item-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: calc(100% - 9rem);
+  padding-right: 1em;
+  box-sizing: border-box;
 }
 
 .telegram-sync-check-setting .setting-item-control {
   flex-shrink: 0;
-  order: 1;
+  align-self: flex-start;
 }
 
 .telegram-sync-check-status {
-  order: 2;
-  flex: 1 1 100%;
-  width: 100%;
-  margin: 0.35em 0 0.75em;
+  margin: 0.5em 0 0;
   font-size: var(--font-ui-small);
   line-height: 1.4;
   min-height: 1.2em;

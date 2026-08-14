@@ -25,7 +25,6 @@ import {
   mergeSettings,
   POST_PROCESS_MODELS,
   resolvePostProcessModel,
-  TRANSCRIPTION_MODEL,
 } from "./types";
 
 export class TelegramSyncSettingTab extends PluginSettingTab {
@@ -82,8 +81,10 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
         items: [
           {
             name: t.aboutIntro,
-            desc: `${t.aboutBulletDirect} ${t.aboutBulletViaServer}`,
             searchable: true,
+            render: (setting) => {
+              this.attachAboutDetails(setting);
+            },
           },
         ],
       },
@@ -166,27 +167,25 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
             name: t.templateFile,
             desc: t.templateFileDesc,
             control: {
-              type: "file",
+              type: "text",
               key: "templateFile",
               placeholder: DEFAULT_TEMPLATE_FILE,
-              filter: (file) => file.extension === "md",
             },
           },
           {
             name: t.targetFile,
             desc: t.targetFileDesc,
             control: {
-              type: "file",
+              type: "text",
               key: "targetFile",
               placeholder: DEFAULT_TARGET_FILE,
-              filter: (file) => file.extension === "md",
             },
           },
           {
             name: t.attachmentsFolder,
             desc: t.attachmentsFolderDesc,
             control: {
-              type: "folder",
+              type: "text",
               key: "attachmentsFolder",
               placeholder: DEFAULT_SETTINGS.attachmentsFolder,
             },
@@ -198,13 +197,8 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
         heading: t.proxyApi,
         items: [
           {
-            name: t.proxyApi,
-            desc: t.proxyApiDesc,
-            searchable: false,
-          },
-          {
             name: t.transcribeAudio,
-            desc: t.transcribeAudioDesc.replace("{model}", TRANSCRIPTION_MODEL),
+            desc: this.buildTranscribeAudioDesc(),
             control: {
               type: "toggle",
               key: "transcribeAudio",
@@ -511,7 +505,7 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
           this.plugin.settings.telegramBotToken = value.trim();
           await this.plugin.saveSettings();
         });
-      text.inputEl.type = lockedDefault ? "text" : "password";
+      text.inputEl.type = "text";
       text.inputEl.autocomplete = "off";
     });
   }
@@ -595,70 +589,100 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
 
     const block = containerEl.createDiv({ cls: "telegram-sync-about" });
     block.createEl("p", { text: t.aboutIntro });
-    const list = block.createEl("ol", { cls: "telegram-sync-about-list" });
+    this.populateAboutDetails(block, t);
+  }
+
+  private attachAboutDetails(setting: Setting): void {
+    setting.setClass("telegram-sync-about-setting");
+    setting.descEl.empty();
+    this.populateAboutDetails(setting.descEl, this.t());
+  }
+
+  private populateAboutDetails(
+    containerEl: HTMLElement,
+    t: ReturnType<TelegramSyncSettingTab["t"]>,
+  ): void {
+    const list = containerEl.createEl("ol", { cls: "telegram-sync-about-list" });
     list.createEl("li", { text: t.aboutBulletDirect });
     list.createEl("li", { text: t.aboutBulletViaServer });
-    block.createEl("p", {
+    containerEl.createEl("p", {
       cls: "telegram-sync-about-note",
       text: t.aboutViaServerNote,
+    });
+  }
+
+  private buildTranscribeAudioDesc(): DocumentFragment {
+    const t = this.t();
+    return createFragment((frag: DocumentFragment) => {
+      frag.createSpan({ text: t.proxyApiDescPrefix });
+      frag.createEl("a", {
+        text: "proxyapi.ru",
+        href: "https://proxyapi.ru/",
+        attr: {
+          target: "_blank",
+          rel: "noopener",
+        },
+      });
+      frag.createSpan({ text: t.proxyApiDescSuffix });
     });
   }
 
   private attachTelegramCheckButton(setting: Setting): void {
     const t = this.t();
     setting.setClass("telegram-sync-check-setting");
-    let statusEl: HTMLElement;
+    setting.controlEl.empty();
+    const statusEl = this.createCheckStatusElement(setting);
 
     setting.addButton((button) => {
       button.setButtonText(t.check).onClick(async () => {
         button.setDisabled(true);
-        statusEl.setText("");
-        statusEl.removeClass("is-ok");
-        statusEl.removeClass("is-warn");
-        statusEl.removeClass("is-error");
+        this.resetCheckStatus(statusEl);
 
         try {
           const result = await this.runTelegramAccessCheck();
           statusEl.setText(result.message);
           statusEl.addClass(`is-${result.level}`);
-          new Notice(result.message, 7000);
         } finally {
           button.setDisabled(false);
         }
       });
     });
-
-    statusEl = this.createCheckStatusElement(setting);
   }
 
   private attachServerConnectionCheckButton(setting: Setting): void {
     const t = this.t();
     setting.setClass("telegram-sync-check-setting");
-    let statusEl: HTMLElement;
+    setting.controlEl.empty();
+    const statusEl = this.createCheckStatusElement(setting);
 
     setting.addButton((button) => {
       button.setButtonText(t.check).onClick(async () => {
         button.setDisabled(true);
-        statusEl.setText("");
-        statusEl.removeClass("is-ok");
-        statusEl.removeClass("is-error");
+        this.resetCheckStatus(statusEl);
 
         try {
           const { message, ok } = await this.runServerConnectionCheck();
           statusEl.setText(message);
           statusEl.addClass(ok ? "is-ok" : "is-error");
-          new Notice(message, 8000);
         } finally {
           button.setDisabled(false);
         }
       });
     });
+  }
 
-    statusEl = this.createCheckStatusElement(setting);
+  private resetCheckStatus(statusEl: HTMLElement): void {
+    statusEl.setText("");
+    statusEl.removeClass("is-ok", "is-warn", "is-error");
   }
 
   private createCheckStatusElement(setting: Setting): HTMLElement {
-    return setting.settingEl.createDiv({
+    const infoEl = setting.settingEl.querySelector(".setting-item-info");
+    const parent = infoEl ?? setting.settingEl;
+    parent.querySelectorAll(".telegram-sync-check-status").forEach((el) => {
+      el.remove();
+    });
+    return parent.createDiv({
       cls: "telegram-sync-check-status",
     });
   }
@@ -860,14 +884,10 @@ export class TelegramSyncSettingTab extends PluginSettingTab {
       "https://proxyapi.ru/",
       "proxyapi.ru",
     );
-    containerEl.createDiv({
-      cls: "telegram-sync-about-note",
-      text: t.proxyApiDesc,
-    });
 
     new Setting(containerEl)
       .setName(t.transcribeAudio)
-      .setDesc(t.transcribeAudioDesc.replace("{model}", TRANSCRIPTION_MODEL))
+      .setDesc(this.buildTranscribeAudioDesc())
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.transcribeAudio)
